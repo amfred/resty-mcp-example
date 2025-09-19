@@ -55,8 +55,7 @@ def home():
             'GET /pets/available': 'Get all available pets',
             'POST /pets/batch': 'Create multiple pets at once',
             'GET /pets/species': 'Get list of valid pet species',
-            'GET /tools/list': 'Get MCP tool definitions for Pet Operations',
-            'GET /tools/list?simplified=true': 'Get simplified MCP tool list (7 core tools for LLMs)'
+            'GET /tools/list': 'Get simplified MCP tool definitions (7 core tools optimized for LLMs)'
         }
     })
 
@@ -312,10 +311,7 @@ def update_pet_info(pet_id):
 
 @app.route('/tools/list', methods=['GET'])
 def get_tools():
-    """Returns MCP-formatted tool definitions for all Pet Operations"""
-    
-    # Check if simplified tool list is requested
-    simplified = request.args.get('simplified', 'false').lower() == 'true'
+    """Returns simplified MCP-formatted tool definitions optimized for LLM interaction"""
     
     # Pet object schema for responses
     pet_schema = {
@@ -618,16 +614,11 @@ def get_tools():
         "create_multiple_pets"   # Batch efficiency
     ]
     
-    # Filter tools based on request
-    if simplified:
-        tools = [tool for tool in all_tools if tool["name"] in simplified_tool_names]
-    else:
-        tools = all_tools
+    # Return only simplified tool list optimized for LLMs
+    tools = [tool for tool in all_tools if tool["name"] in simplified_tool_names]
     
     return jsonify({
-        "tools": tools,
-        "count": len(tools),
-        "mode": "simplified" if simplified else "complete"
+        "tools": tools
     })
 
 if __name__ == '__main__':
