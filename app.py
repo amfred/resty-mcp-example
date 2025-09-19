@@ -46,11 +46,17 @@ def home():
             'GET /pets': 'Get all pets',
             'POST /pets': 'Add a new pet',
             'GET /pets/<id>': 'Get a specific pet',
+            'PUT /pets/<id>': 'Update pet information',
             'PUT /pets/<id>/adopt': 'Adopt a pet by ID',
             'PUT /pets/adopt?name=<name>': 'Adopt a pet by name',
             'DELETE /pets/<id>': 'Delete a pet',
             'GET /pets/search': 'Search pets with filters',
-            'GET /tools/list': 'Get MCP tool definitions for Pet Operations'
+            'GET /pets/summary': 'Get pet statistics by species and adoption status',
+            'GET /pets/available': 'Get all available pets',
+            'POST /pets/batch': 'Create multiple pets at once',
+            'GET /pets/species': 'Get list of valid pet species',
+            'GET /tools/list': 'Get MCP tool definitions for Pet Operations',
+            'GET /tools/list?simplified=true': 'Get simplified MCP tool list (7 core tools for LLMs)'
         }
     })
 
@@ -146,9 +152,170 @@ def search_pets():
     pets = query.all()
     return jsonify([pet.to_dict() for pet in pets])
 
+@app.route('/pets/summary', methods=['GET'])
+def get_pets_summary():
+    """Get summary statistics of pets by species and adoption status"""
+    from sqlalchemy import func
+    
+    # Get counts by species and adoption status
+    summary_data = db.session.query(
+        Pet.species,
+        Pet.is_adopted,
+        func.count(Pet.id).label('count')
+    ).group_by(Pet.species, Pet.is_adopted).all()
+    
+    # Organize data by species
+    summary = {}
+    total_pets = 0
+    total_available = 0
+    total_adopted = 0
+    
+    for species, is_adopted, count in summary_data:
+        if species not in summary:
+            summary[species] = {'available': 0, 'adopted': 0, 'total': 0}
+        
+        if is_adopted:
+            summary[species]['adopted'] = count
+            total_adopted += count
+        else:
+            summary[species]['available'] = count
+            total_available += count
+        
+        summary[species]['total'] = summary[species]['available'] + summary[species]['adopted']
+        total_pets += count
+    
+    return jsonify({
+        'summary_by_species': summary,
+        'overall_totals': {
+            'total_pets': total_pets,
+            'available_pets': total_available,
+            'adopted_pets': total_adopted
+        }
+    })
+
+@app.route('/pets/available', methods=['GET'])
+def get_available_pets():
+    """Get all pets that are currently available for adoption"""
+    pets = Pet.query.filter(Pet.is_adopted == False).all()
+    return jsonify([pet.to_dict() for pet in pets])
+
+@app.route('/pets/batch', methods=['POST'])
+def create_multiple_pets():
+    """Add multiple pets in a single operation"""
+    data = request.get_json()
+    
+    if not data or 'pets' not in data or not isinstance(data['pets'], list):
+        return jsonify({'error': 'Request must contain a "pets" array'}), 400
+    
+    if len(data['pets']) == 0:
+        return jsonify({'error': 'Pets array cannot be empty'}), 400
+    
+    if len(data['pets']) > 50:  # Reasonable limit
+        return jsonify({'error': 'Cannot create more than 50 pets at once'}), 400
+    
+    created_pets = []
+    errors = []
+    
+    for i, pet_data in enumerate(data['pets']):
+        if not pet_data.get('name') or not pet_data.get('species'):
+            errors.append(f'Pet {i+1}: Name and species are required')
+            continue
+        
+        try:
+            pet = Pet(
+                name=pet_data['name'],
+                species=pet_data['species'],
+                breed=pet_data.get('breed'),
+                age=pet_data.get('age'),
+                description=pet_data.get('description')
+            )
+            db.session.add(pet)
+            created_pets.append(pet)
+        except Exception as e:
+            errors.append(f'Pet {i+1}: {str(e)}')
+    
+    if errors and not created_pets:
+        return jsonify({'errors': errors}), 400
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': f'Successfully created {len(created_pets)} pets',
+            'created_pets': [pet.to_dict() for pet in created_pets],
+            'errors': errors if errors else None
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+@app.route('/pets/species', methods=['GET'])
+def get_valid_species():
+    """Get list of valid/common pet species"""
+    # Get unique species from existing pets
+    existing_species = db.session.query(Pet.species).distinct().all()
+    existing_species = [s[0] for s in existing_species]
+    
+    # Common pet species (can be extended)
+    common_species = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Hamster', 'Guinea Pig', 'Fish', 'Reptile']
+    
+    # Combine and deduplicate
+    all_species = list(set(existing_species + common_species))
+    all_species.sort()
+    
+    return jsonify({
+        'species': all_species,
+        'existing_in_database': existing_species,
+        'common_options': common_species
+    })
+
+@app.route('/pets/<int:pet_id>', methods=['PUT'])
+def update_pet_info(pet_id):
+    """Update pet information (excluding adoption status)"""
+    pet = Pet.query.get_or_404(pet_id)
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    # Update allowed fields
+    if 'name' in data:
+        if not data['name']:
+            return jsonify({'error': 'Name cannot be empty'}), 400
+        pet.name = data['name']
+    
+    if 'species' in data:
+        if not data['species']:
+            return jsonify({'error': 'Species cannot be empty'}), 400
+        pet.species = data['species']
+    
+    if 'breed' in data:
+        pet.breed = data['breed']
+    
+    if 'age' in data:
+        if data['age'] is not None and (not isinstance(data['age'], int) or data['age'] < 0):
+            return jsonify({'error': 'Age must be a non-negative integer'}), 400
+        pet.age = data['age']
+    
+    if 'description' in data:
+        pet.description = data['description']
+    
+    # Don't allow updating is_adopted through this endpoint
+    if 'is_adopted' in data:
+        return jsonify({'error': 'Use adoption endpoints to change adoption status'}), 400
+    
+    try:
+        db.session.commit()
+        return jsonify(pet.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
 @app.route('/tools/list', methods=['GET'])
 def get_tools():
     """Returns MCP-formatted tool definitions for all Pet Operations"""
+    
+    # Check if simplified tool list is requested
+    simplified = request.args.get('simplified', 'false').lower() == 'true'
     
     # Pet object schema for responses
     pet_schema = {
@@ -166,7 +333,8 @@ def get_tools():
         "required": ["id", "name", "species", "is_adopted", "created_at"]
     }
     
-    tools = [
+    # Define all available tools
+    all_tools = [
         {
             "name": "get_all_pets",
             "title": "Get All Pets",
@@ -287,11 +455,179 @@ def get_tools():
                 "items": pet_schema,
                 "description": "Array of pets matching the search criteria"
             }
+        },
+        {
+            "name": "get_pets_summary",
+            "title": "Get Pet Statistics Summary",
+            "description": "Get summary statistics of pets grouped by species and adoption status",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "summary_by_species": {
+                        "type": "object",
+                        "description": "Statistics grouped by pet species",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "available": {"type": "integer", "description": "Number of available pets"},
+                                "adopted": {"type": "integer", "description": "Number of adopted pets"},
+                                "total": {"type": "integer", "description": "Total number of pets"}
+                            }
+                        }
+                    },
+                    "overall_totals": {
+                        "type": "object",
+                        "properties": {
+                            "total_pets": {"type": "integer", "description": "Total number of pets in system"},
+                            "available_pets": {"type": "integer", "description": "Total available pets"},
+                            "adopted_pets": {"type": "integer", "description": "Total adopted pets"}
+                        },
+                        "required": ["total_pets", "available_pets", "adopted_pets"]
+                    }
+                },
+                "required": ["summary_by_species", "overall_totals"]
+            }
+        },
+        {
+            "name": "get_available_pets",
+            "title": "Get Available Pets",
+            "description": "Get all pets that are currently available for adoption",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "array",
+                "items": pet_schema,
+                "description": "Array of all available pets"
+            }
+        },
+        {
+            "name": "create_multiple_pets",
+            "title": "Create Multiple Pets",
+            "description": "Add multiple pets to the adoption system in a single operation",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pets": {
+                        "type": "array",
+                        "description": "Array of pet objects to create",
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Pet's name"},
+                                "species": {"type": "string", "description": "Pet's species (e.g., Dog, Cat, Bird)"},
+                                "breed": {"type": "string", "description": "Pet's breed (optional)"},
+                                "age": {"type": "integer", "description": "Pet's age in years (optional)"},
+                                "description": {"type": "string", "description": "Description of the pet (optional)"}
+                            },
+                            "required": ["name", "species"],
+                            "additionalProperties": False
+                        }
+                    }
+                },
+                "required": ["pets"],
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string", "description": "Success message"},
+                    "created_pets": {
+                        "type": "array",
+                        "items": pet_schema,
+                        "description": "Array of successfully created pets"
+                    },
+                    "errors": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Array of error messages for failed pet creations"
+                    }
+                },
+                "required": ["message", "created_pets"]
+            }
+        },
+        {
+            "name": "get_valid_species",
+            "title": "Get Valid Pet Species",
+            "description": "Get list of valid/common pet species for data validation",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "species": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "All available species (existing + common)"
+                    },
+                    "existing_in_database": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Species currently in the database"
+                    },
+                    "common_options": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Common pet species options"
+                    }
+                },
+                "required": ["species", "existing_in_database", "common_options"]
+            }
+        },
+        {
+            "name": "update_pet_info",
+            "title": "Update Pet Information",
+            "description": "Update pet details (name, species, breed, age, description) excluding adoption status",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pet_id": {"type": "integer", "description": "Unique identifier of the pet to update", "minimum": 1},
+                    "name": {"type": "string", "description": "Updated pet name (optional)"},
+                    "species": {"type": "string", "description": "Updated pet species (optional)"},
+                    "breed": {"type": "string", "description": "Updated pet breed (optional)"},
+                    "age": {"type": "integer", "description": "Updated pet age in years (optional)", "minimum": 0},
+                    "description": {"type": "string", "description": "Updated pet description (optional)"}
+                },
+                "required": ["pet_id"],
+                "additionalProperties": False
+            },
+            "outputSchema": pet_schema
         }
     ]
     
+    # Define simplified tool list (core essential tools for LLMs)
+    simplified_tool_names = [
+        "get_pets_summary",      # Most important - gives overview
+        "search_pets",           # Most flexible - handles most queries  
+        "create_pet",            # Basic creation
+        "adopt_pet_by_name",     # User-friendly adoption
+        "update_pet_info",       # Basic editing
+        "get_valid_species",     # Validation helper
+        "create_multiple_pets"   # Batch efficiency
+    ]
+    
+    # Filter tools based on request
+    if simplified:
+        tools = [tool for tool in all_tools if tool["name"] in simplified_tool_names]
+    else:
+        tools = all_tools
+    
     return jsonify({
-        "tools": tools
+        "tools": tools,
+        "count": len(tools),
+        "mode": "simplified" if simplified else "complete"
     })
 
 if __name__ == '__main__':
