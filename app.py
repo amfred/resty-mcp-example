@@ -50,7 +50,7 @@ def home():
             'PUT /pets/adopt?name=<name>': 'Adopt a pet by name',
             'DELETE /pets/<id>': 'Delete a pet',
             'GET /pets/search': 'Search pets with filters',
-            'GET /tools': 'Get MCP tool definitions for Pet Operations'
+            'GET /tools/list': 'Get MCP tool definitions for Pet Operations'
         }
     })
 
@@ -146,7 +146,7 @@ def search_pets():
     pets = query.all()
     return jsonify([pet.to_dict() for pet in pets])
 
-@app.route('/tools', methods=['GET'])
+@app.route('/tools/list', methods=['GET'])
 def get_tools():
     """Returns MCP-formatted tool definitions for all Pet Operations"""
     
