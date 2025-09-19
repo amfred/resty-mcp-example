@@ -46,8 +46,10 @@ def home():
             'GET /pets': 'Get all pets',
             'POST /pets': 'Add a new pet',
             'GET /pets/<id>': 'Get a specific pet',
-            'PUT /pets/<id>/adopt': 'Adopt a pet',
-            'DELETE /pets/<id>': 'Delete a pet'
+            'PUT /pets/<id>/adopt': 'Adopt a pet by ID',
+            'PUT /pets/adopt?name=<name>': 'Adopt a pet by name',
+            'DELETE /pets/<id>': 'Delete a pet',
+            'GET /pets/search': 'Search pets with filters'
         }
     })
 
@@ -100,6 +102,30 @@ def delete_pet(pet_id):
     db.session.commit()
     
     return jsonify({'message': 'Pet deleted successfully'})
+
+@app.route('/pets/adopt', methods=['PUT'])
+def adopt_pet_by_name():
+    name = request.args.get('name')
+    
+    if not name:
+        return jsonify({'error': 'Name parameter is required'}), 400
+    
+    # Find pet by name (case-insensitive)
+    pet = Pet.query.filter(Pet.name.ilike(f'%{name}%')).first()
+    
+    if not pet:
+        return jsonify({'error': f'No pet found with name containing "{name}"'}), 404
+    
+    if pet.is_adopted:
+        return jsonify({'error': f'{pet.name} is already adopted'}), 400
+    
+    pet.is_adopted = True
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'{pet.name} has been successfully adopted!',
+        'pet': pet.to_dict()
+    })
 
 @app.route('/pets/search', methods=['GET'])
 def search_pets():

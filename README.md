@@ -35,7 +35,8 @@ A fun REST API example built with Flask that simulates a pet adoption system. Th
 - `GET /pets` - Get all pets
 - `POST /pets` - Add a new pet
 - `GET /pets/<id>` - Get a specific pet
-- `PUT /pets/<id>/adopt` - Adopt a pet
+- `PUT /pets/<id>/adopt` - Adopt a pet by ID
+- `PUT /pets/adopt?name=<name>` - Adopt a pet by name
 - `DELETE /pets/<id>` - Delete a pet
 - `GET /pets/search` - Search pets with filters
 
@@ -64,14 +65,64 @@ curl -X POST http://localhost:5001/pets \
   }'
 ```
 
-### Adopt a pet
+### Adopt a pet by ID
 ```bash
 curl -X PUT http://localhost:5001/pets/1/adopt
+```
+
+### Adopt a pet by name
+```bash
+curl -X PUT "http://localhost:5001/pets/adopt?name=Tweety"
 ```
 
 ### Search for available dogs
 ```bash
 curl "http://localhost:5001/pets/search?species=dog&available_only=true"
+```
+
+## New Feature: Adopt by Name
+
+The API now supports adopting pets by name, making it much easier to adopt pets without needing to know their ID first.
+
+### Endpoint: `PUT /pets/adopt?name=<name>`
+
+**Parameters:**
+- `name` (required): The name of the pet to adopt (case-insensitive partial match)
+
+**Response Examples:**
+
+**Success (200):**
+```json
+{
+  "message": "Tweety has been successfully adopted!",
+  "pet": {
+    "id": 3,
+    "name": "Tweety",
+    "species": "Bird",
+    "breed": "Canary",
+    "age": 1,
+    "description": "Sings beautifully",
+    "is_adopted": true,
+    "created_at": "2024-01-15T10:30:00"
+  }
+}
+```
+
+**Error Cases:**
+- **Pet not found (404):** `{"error": "No pet found with name containing \"NonExistentPet\""}`
+- **Already adopted (400):** `{"error": "Tweety is already adopted"}`
+- **Missing name (400):** `{"error": "Name parameter is required"}`
+
+**Usage Examples:**
+```bash
+# Adopt Tweety
+curl -X PUT "http://localhost:5001/pets/adopt?name=Tweety"
+
+# Adopt Buddy (partial name match works)
+curl -X PUT "http://localhost:5001/pets/adopt?name=Bud"
+
+# Try to adopt already adopted pet
+curl -X PUT "http://localhost:5001/pets/adopt?name=Tweety"
 ```
 
 ## Database Schema
