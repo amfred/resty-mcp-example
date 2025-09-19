@@ -49,7 +49,8 @@ def home():
             'PUT /pets/<id>/adopt': 'Adopt a pet by ID',
             'PUT /pets/adopt?name=<name>': 'Adopt a pet by name',
             'DELETE /pets/<id>': 'Delete a pet',
-            'GET /pets/search': 'Search pets with filters'
+            'GET /pets/search': 'Search pets with filters',
+            'GET /tools': 'Get MCP tool definitions for Pet Operations'
         }
     })
 
@@ -144,6 +145,154 @@ def search_pets():
     
     pets = query.all()
     return jsonify([pet.to_dict() for pet in pets])
+
+@app.route('/tools', methods=['GET'])
+def get_tools():
+    """Returns MCP-formatted tool definitions for all Pet Operations"""
+    
+    # Pet object schema for responses
+    pet_schema = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "integer", "description": "Unique pet identifier"},
+            "name": {"type": "string", "description": "Pet's name"},
+            "species": {"type": "string", "description": "Pet's species (e.g., Dog, Cat, Bird)"},
+            "breed": {"type": "string", "description": "Pet's breed"},
+            "age": {"type": "integer", "description": "Pet's age in years"},
+            "description": {"type": "string", "description": "Description of the pet"},
+            "is_adopted": {"type": "boolean", "description": "Whether the pet has been adopted"},
+            "created_at": {"type": "string", "format": "date-time", "description": "When the pet was added to the system"}
+        },
+        "required": ["id", "name", "species", "is_adopted", "created_at"]
+    }
+    
+    tools = [
+        {
+            "name": "get_all_pets",
+            "title": "Get All Pets",
+            "description": "Retrieve a list of all pets in the adoption system",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "array",
+                "items": pet_schema,
+                "description": "Array of all pets in the system"
+            }
+        },
+        {
+            "name": "create_pet",
+            "title": "Add New Pet",
+            "description": "Add a new pet to the adoption system",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Pet's name"},
+                    "species": {"type": "string", "description": "Pet's species (e.g., Dog, Cat, Bird)"},
+                    "breed": {"type": "string", "description": "Pet's breed (optional)"},
+                    "age": {"type": "integer", "description": "Pet's age in years (optional)"},
+                    "description": {"type": "string", "description": "Description of the pet (optional)"}
+                },
+                "required": ["name", "species"],
+                "additionalProperties": False
+            },
+            "outputSchema": pet_schema
+        },
+        {
+            "name": "get_pet_by_id",
+            "title": "Get Pet by ID",
+            "description": "Retrieve detailed information about a specific pet using its ID",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pet_id": {"type": "integer", "description": "Unique identifier of the pet", "minimum": 1}
+                },
+                "required": ["pet_id"],
+                "additionalProperties": False
+            },
+            "outputSchema": pet_schema
+        },
+        {
+            "name": "adopt_pet_by_id",
+            "title": "Adopt Pet by ID",
+            "description": "Mark a pet as adopted using its unique ID",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pet_id": {"type": "integer", "description": "Unique identifier of the pet to adopt", "minimum": 1}
+                },
+                "required": ["pet_id"],
+                "additionalProperties": False
+            },
+            "outputSchema": pet_schema
+        },
+        {
+            "name": "adopt_pet_by_name",
+            "title": "Adopt Pet by Name",
+            "description": "Mark a pet as adopted using its name (supports partial matching)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the pet to adopt (case-insensitive, supports partial matching)", "minLength": 1}
+                },
+                "required": ["name"],
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string", "description": "Success message"},
+                    "pet": pet_schema
+                },
+                "required": ["message", "pet"]
+            }
+        },
+        {
+            "name": "delete_pet",
+            "title": "Delete Pet",
+            "description": "Remove a pet from the adoption system",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pet_id": {"type": "integer", "description": "Unique identifier of the pet to delete", "minimum": 1}
+                },
+                "required": ["pet_id"],
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string", "description": "Confirmation message"}
+                },
+                "required": ["message"]
+            }
+        },
+        {
+            "name": "search_pets",
+            "title": "Search Pets",
+            "description": "Search and filter pets by various criteria",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "species": {"type": "string", "description": "Filter by species (case-insensitive, supports partial matching)"},
+                    "breed": {"type": "string", "description": "Filter by breed (case-insensitive, supports partial matching)"},
+                    "available_only": {"type": "boolean", "description": "If true, only return pets that are not yet adopted", "default": False}
+                },
+                "additionalProperties": False
+            },
+            "outputSchema": {
+                "type": "array",
+                "items": pet_schema,
+                "description": "Array of pets matching the search criteria"
+            }
+        }
+    ]
+    
+    return jsonify({
+        "tools": tools
+    })
 
 if __name__ == '__main__':
     with app.app_context():
