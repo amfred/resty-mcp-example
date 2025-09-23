@@ -1,0 +1,6 @@
+# Test dependencies for Pet Adoption API
+pytest>=7.0.0
+pytest-html>=3.0.0
+requests>=2.25.0
+coverage>=6.0.0
+

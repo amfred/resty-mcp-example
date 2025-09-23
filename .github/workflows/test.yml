@@ -1,0 +1,95 @@
+name: Pet Adoption API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+    
+    - name: Start API server
+      run: |
+        python app.py &
+        sleep 5  # Give server time to start
+        
+        # Wait for server to be ready
+        timeout 30 bash -c 'until curl -f http://127.0.0.1:5001/; do sleep 1; done'
+    
+    - name: Run tests with pytest
+      run: |
+        pytest test_api.py -v --junitxml=test-results.xml --html=test-report.html --self-contained-html
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-python-${{ matrix.python-version }}
+        path: |
+          test-results.xml
+          test-report.html
+    
+    - name: Publish test results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: test-results.xml
+        comment_mode: create new
+        
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+    
+    - name: Start API server
+      run: |
+        python app.py &
+        sleep 5
+        timeout 30 bash -c 'until curl -f http://127.0.0.1:5001/; do sleep 1; done'
+    
+    - name: Run tests with coverage
+      run: |
+        coverage run -m pytest test_api.py
+        coverage xml
+        coverage report
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+

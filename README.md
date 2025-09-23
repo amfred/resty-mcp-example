@@ -125,6 +125,141 @@ curl -X PUT "http://localhost:5001/pets/adopt?name=Bud"
 curl -X PUT "http://localhost:5001/pets/adopt?name=Tweety"
 ```
 
+## Testing
+
+This project includes a comprehensive test suite that covers all API endpoints, MCP functionality, error handling, and edge cases.
+
+### Test Coverage
+
+The test suite includes **23 test methods** covering:
+- ✅ All REST API endpoints (14 endpoints)
+- ✅ MCP server functionality (JSON-RPC 2.0 protocol)
+- ✅ Validation and error handling
+- ✅ CORS functionality
+- ✅ Edge cases and negative scenarios
+- ✅ Proper test isolation and cleanup
+
+### Prerequisites
+
+1. **Install test dependencies**:
+   ```bash
+   pip install -r requirements-test.txt
+   ```
+
+2. **Start the API server** (required for integration tests):
+   ```bash
+   python app.py
+   ```
+   The server should be running at `http://127.0.0.1:5001` before running tests.
+
+### Running Tests
+
+#### Using the Test Runner Script (Recommended)
+
+```bash
+# Make the script executable (first time only)
+chmod +x run_tests.sh
+
+# Run tests with different options:
+./run_tests.sh                    # Default: pytest mode
+./run_tests.sh pytest            # Pytest with verbose output (recommended)
+./run_tests.sh coverage          # With coverage analysis
+./run_tests.sh html              # Generate HTML test report
+./run_tests.sh ci                # CI mode with JUnit XML output
+./run_tests.sh quick             # Quick smoke tests only
+```
+
+#### Direct Commands
+
+```bash
+# Using pytest (recommended)
+pytest test_api.py -v
+
+# Using unittest
+python test_api.py
+
+# With coverage
+coverage run -m pytest test_api.py
+coverage report
+coverage html  # Generates htmlcov/ directory
+
+# Generate HTML test report
+pytest test_api.py --html=test_report.html --self-contained-html
+```
+
+### Test Structure
+
+The test suite is organized into logical groups:
+
+**API Core Tests (001-006)**:
+- API information endpoint
+- Get all pets
+- Pet statistics summary
+- Available pets filtering
+- Valid species list
+- Pet search functionality
+
+**CRUD Operations (007-016)**:
+- Create pet (with validation)
+- Get pet by ID
+- Update pet information
+- Adopt pets (by ID and name)
+- Delete pets
+- Batch pet creation
+
+**MCP Server Tests (017-021)**:
+- Tool definitions endpoint
+- MCP initialization
+- Tools list via JSON-RPC
+- Tool execution via JSON-RPC
+- Error handling
+
+**Edge Cases & Features (022-023)**:
+- CORS headers validation
+- Removed endpoints verification
+
+### Continuous Integration
+
+The project includes GitHub Actions workflows that:
+- Run tests on multiple Python versions (3.8, 3.9, 3.10, 3.11)
+- Generate test reports and coverage analysis
+- Publish results as artifacts
+- Upload coverage to Codecov
+
+**Workflow triggers**:
+- Push to `main` or `develop` branches
+- Pull requests to `main`
+
+### Test Features
+
+- **Independent Tests**: Each test is fully isolated and can run independently
+- **Automatic Cleanup**: Tests clean up any data they create
+- **Comprehensive Coverage**: Tests all endpoints, error cases, and edge scenarios
+- **Multiple Output Formats**: JUnit XML, HTML reports, coverage analysis
+- **CI/CD Ready**: Full GitHub Actions integration
+
+### Example Test Output
+
+```bash
+$ ./run_tests.sh pytest
+
+🧪 Pet Adoption API Test Suite
+================================
+✅ API server is running
+✅ Test dependencies installed
+🏃 Running tests with pytest...
+
+test_api.py::PetAdoptionAPITest::test_001_api_info PASSED
+test_api.py::PetAdoptionAPITest::test_002_get_all_pets PASSED
+test_api.py::PetAdoptionAPITest::test_003_get_pets_summary PASSED
+...
+test_api.py::PetAdoptionAPITest::test_023_removed_streaming_endpoints PASSED
+
+========================= 23 passed in 2.34s =========================
+
+✅ Test execution completed!
+```
+
 ## Database Schema
 
 The `Pet` model includes:
