@@ -1,7 +1,7 @@
 """
 FastAPI main application for Pet Adoption API
 
-This is the main entry point for the FastAPI application, replacing the Flask app.py.
+This is the main entry point for the FastAPI application.
 """
 
 from contextlib import asynccontextmanager

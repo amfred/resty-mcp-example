@@ -1,6 +1,6 @@
 # Resty MCP Example - Pet Adoption API
 
-A fun REST API example built with Flask that simulates a pet adoption system. This project demonstrates basic CRUD operations, database integration, and RESTful API design.
+A fun REST API example built with FastAPI that simulates a pet adoption system. This project demonstrates basic CRUD operations, database integration, and RESTful API design.
 
 ## Features
 
@@ -486,7 +486,7 @@ The application comes with 5 sample pets:
 
 ## Development
 
-This is a simple Flask application perfect for:
+This is a simple FastAPI application perfect for:
 - Learning REST API concepts
 - Understanding database integration
 - Practicing CRUD operations

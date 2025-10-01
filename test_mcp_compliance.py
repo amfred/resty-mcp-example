@@ -39,7 +39,7 @@ class MCPComplianceTest(unittest.TestCase):
         except requests.exceptions.RequestException as e:
             print(f"❌ Cannot connect to MCP server at {API_BASE_URL}")
             print(f"Error: {e}")
-            print("Please make sure the Flask app is running: python app.py")
+            print("Please make sure the FastAPI app is running: python run_fastapi.py")
             sys.exit(1)
     
     def setUp(self):

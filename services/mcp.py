@@ -239,7 +239,7 @@ class MCPService:
         )
         existing_species = [row[0] for row in result.all()]
         
-        # Common pet species (matches original Flask app)
+        # Common pet species
         common_species = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Hamster', 'Guinea Pig', 'Fish', 'Reptile']
         
         # Combine and deduplicate
