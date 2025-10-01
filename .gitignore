@@ -33,6 +33,10 @@ venv.bak/
 *.sqlite
 *.sqlite3
 
+# Logs
+*.log
+fastapi_app.log
+
 # Environment variables
 .env
 .env.local
