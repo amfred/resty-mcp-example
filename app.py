@@ -58,7 +58,7 @@ def home():
             'POST /pets/batch': 'Create multiple pets at once',
             'GET /pets/species': 'Get list of valid pet species',
             'GET /tools/list': 'Get simplified MCP tool definitions (7 core tools optimized for LLMs)',
-            'POST /mcp': 'Full MCP server endpoint (JSON-RPC 2.0 protocol)'
+            'POST /mcp': 'Full MCP server endpoint (JSON-RPC 2.0 protocol with tools, resources, prompts, logging)'
         }
     })
 
@@ -340,6 +340,16 @@ def mcp_server():
             return jsonify(handle_mcp_tools_list(request_id, params))
         elif method == 'tools/call':
             return jsonify(handle_mcp_tools_call(request_id, params))
+        elif method == 'resources/list':
+            return jsonify(handle_mcp_resources_list(request_id, params))
+        elif method == 'resources/read':
+            return jsonify(handle_mcp_resources_read(request_id, params))
+        elif method == 'prompts/list':
+            return jsonify(handle_mcp_prompts_list(request_id, params))
+        elif method == 'prompts/get':
+            return jsonify(handle_mcp_prompts_get(request_id, params))
+        elif method == 'logging/setLevel':
+            return jsonify(handle_mcp_logging_setLevel(request_id, params))
         else:
             return jsonify(make_jsonrpc_error(-32601, f"Method not found: {method}", request_id)), 404
             
@@ -369,7 +379,15 @@ def handle_mcp_initialize(request_id, params):
             "capabilities": {
                 "tools": {
                     "listChanged": False
-                }
+                },
+                "resources": {
+                    "subscribe": False,
+                    "listChanged": False
+                },
+                "prompts": {
+                    "listChanged": False
+                },
+                "logging": {}
             },
             "serverInfo": {
                 "name": "Pet Adoption API",
@@ -662,6 +680,216 @@ def execute_tool_internally(tool_name, arguments):
     
     else:
         raise ValueError(f"Unknown tool: {tool_name}")
+
+def handle_mcp_resources_list(request_id, params):
+    """Handle MCP resources/list request - list available resources"""
+    # For pet adoption API, resources could be adoption forms, pet care guides, etc.
+    resources = [
+        {
+            "uri": "file://adoption-form.pdf",
+            "name": "Pet Adoption Form",
+            "description": "Standard pet adoption application form",
+            "mimeType": "application/pdf"
+        },
+        {
+            "uri": "file://pet-care-guide.md",
+            "name": "Pet Care Guide",
+            "description": "Comprehensive guide for new pet owners",
+            "mimeType": "text/markdown"
+        },
+        {
+            "uri": "file://vaccination-schedule.json",
+            "name": "Vaccination Schedule",
+            "description": "Recommended vaccination schedules by pet species",
+            "mimeType": "application/json"
+        }
+    ]
+    
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "result": {
+            "resources": resources
+        }
+    }
+
+def handle_mcp_resources_read(request_id, params):
+    """Handle MCP resources/read request - read a specific resource"""
+    uri = params.get('uri')
+    
+    if not uri:
+        return make_jsonrpc_error(-32602, "Missing required parameter: uri", request_id)
+    
+    # Mock resource content based on URI
+    resource_content = {
+        "file://adoption-form.pdf": {
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "Pet Adoption Form\n\n1. Applicant Information:\n   - Full Name: _______________\n   - Address: _______________\n   - Phone: _______________\n   - Email: _______________\n\n2. Pet Preferences:\n   - Preferred Species: _______________\n   - Age Range: _______________\n   - Size Preference: _______________\n\n3. Living Situation:\n   - Home Type: _______________\n   - Yard: Yes / No\n   - Other Pets: _______________\n\n4. Experience:\n   - Previous Pet Ownership: _______________\n   - Veterinarian Reference: _______________\n\nSignature: _______________  Date: _______________"
+                }
+            ]
+        },
+        "file://pet-care-guide.md": {
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "# Pet Care Guide\n\n## Getting Started\n- Prepare your home before your pet arrives\n- Stock up on essential supplies (food, water bowls, bedding)\n- Research veterinarians in your area\n\n## Daily Care\n- Establish feeding schedules\n- Provide fresh water daily\n- Regular exercise and playtime\n- Grooming as needed\n\n## Health Care\n- Schedule initial vet checkup\n- Keep up with vaccinations\n- Watch for signs of illness\n- Spay/neuter if not already done\n\n## Training and Socialization\n- Basic training commands\n- House training\n- Socialization with people and other animals\n- Positive reinforcement techniques"
+                }
+            ]
+        },
+        "file://vaccination-schedule.json": {
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "{\n  \"dogs\": {\n    \"core_vaccines\": [\n      {\"vaccine\": \"DHPP\", \"age\": \"6-8 weeks\", \"frequency\": \"Every 3-4 weeks until 16 weeks\"},\n      {\"vaccine\": \"Rabies\", \"age\": \"12-16 weeks\", \"frequency\": \"Annual or every 3 years\"}\n    ],\n    \"non_core_vaccines\": [\n      {\"vaccine\": \"Bordetella\", \"age\": \"6 weeks\", \"frequency\": \"Annual\"},\n      {\"vaccine\": \"Lyme\", \"age\": \"12 weeks\", \"frequency\": \"Annual\"}\n    ]\n  },\n  \"cats\": {\n    \"core_vaccines\": [\n      {\"vaccine\": \"FVRCP\", \"age\": \"6-8 weeks\", \"frequency\": \"Every 3-4 weeks until 16 weeks\"},\n      {\"vaccine\": \"Rabies\", \"age\": \"12-16 weeks\", \"frequency\": \"Annual or every 3 years\"}\n    ],\n    \"non_core_vaccines\": [\n      {\"vaccine\": \"FeLV\", \"age\": \"8 weeks\", \"frequency\": \"Annual for outdoor cats\"}\n    ]\n  }\n}"
+                }
+            ]
+        }
+    }
+    
+    if uri not in resource_content:
+        return make_jsonrpc_error(-32602, f"Resource not found: {uri}", request_id)
+    
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "result": resource_content[uri]
+    }
+
+def handle_mcp_prompts_list(request_id, params):
+    """Handle MCP prompts/list request - list available prompt templates"""
+    prompts = [
+        {
+            "name": "adoption_assistant",
+            "description": "Help users find the perfect pet for adoption",
+            "arguments": [
+                {
+                    "name": "user_preferences",
+                    "description": "User's preferences for pet type, size, age, etc.",
+                    "required": False
+                }
+            ]
+        },
+        {
+            "name": "pet_care_advisor",
+            "description": "Provide pet care advice and recommendations",
+            "arguments": [
+                {
+                    "name": "pet_species",
+                    "description": "The species of pet (dog, cat, bird, etc.)",
+                    "required": True
+                },
+                {
+                    "name": "specific_question",
+                    "description": "Specific care question or concern",
+                    "required": False
+                }
+            ]
+        },
+        {
+            "name": "adoption_form_helper",
+            "description": "Guide users through the adoption application process",
+            "arguments": [
+                {
+                    "name": "current_step",
+                    "description": "Current step in the adoption process",
+                    "required": False
+                }
+            ]
+        }
+    ]
+    
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "result": {
+            "prompts": prompts
+        }
+    }
+
+def handle_mcp_prompts_get(request_id, params):
+    """Handle MCP prompts/get request - get a specific prompt template"""
+    name = params.get('name')
+    arguments = params.get('arguments', {})
+    
+    if not name:
+        return make_jsonrpc_error(-32602, "Missing required parameter: name", request_id)
+    
+    prompt_templates = {
+        "adoption_assistant": {
+            "description": "Help users find the perfect pet for adoption",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": {
+                        "type": "text",
+                        "text": "You are a friendly pet adoption assistant. Help users find the perfect pet based on their preferences: {}. Use the available tools to search for pets, get pet statistics, and provide information about available animals. Be enthusiastic but honest about pet care responsibilities.".format(arguments.get('user_preferences', 'no specific preferences provided'))
+                    }
+                }
+            ]
+        },
+        "pet_care_advisor": {
+            "description": "Provide pet care advice and recommendations",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": {
+                        "type": "text",
+                        "text": "You are a knowledgeable pet care advisor specializing in {}. Provide helpful, accurate advice about pet care, health, training, and behavior. {} Always recommend consulting with a veterinarian for health concerns.".format(
+                            arguments.get('pet_species', 'all pets'),
+                            'The user is asking about: {}'.format(arguments.get('specific_question')) if arguments.get('specific_question') else 'Answer any pet care questions thoroughly.'
+                        )
+                    }
+                }
+            ]
+        },
+        "adoption_form_helper": {
+            "description": "Guide users through the adoption application process",
+            "messages": [
+                {
+                    "role": "system", 
+                    "content": {
+                        "type": "text",
+                        "text": "You are a helpful adoption coordinator. Guide users through the pet adoption application process. {} Be thorough but friendly, and help them understand what information they need to provide and what to expect during the adoption process.".format(
+                            'They are currently at: {}'.format(arguments.get('current_step')) if arguments.get('current_step') else 'Start by explaining the adoption process.'
+                        )
+                    }
+                }
+            ]
+        }
+    }
+    
+    if name not in prompt_templates:
+        return make_jsonrpc_error(-32602, f"Prompt not found: {name}", request_id)
+    
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "result": prompt_templates[name]
+    }
+
+def handle_mcp_logging_setLevel(request_id, params):
+    """Handle MCP logging/setLevel request - set logging level"""
+    level = params.get('level')
+    
+    if not level:
+        return make_jsonrpc_error(-32602, "Missing required parameter: level", request_id)
+    
+    valid_levels = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']
+    
+    if level.lower() not in valid_levels:
+        return make_jsonrpc_error(-32602, f"Invalid logging level: {level}. Valid levels: {valid_levels}", request_id)
+    
+    # In a real implementation, this would set the actual logging level
+    # For this example, we'll just acknowledge the request
+    print(f"Logging level set to: {level}")
+    
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "result": {}
+    }
 
 def get_all_mcp_tools(pet_schema):
     """Get all MCP tool definitions (reused from REST endpoint)"""

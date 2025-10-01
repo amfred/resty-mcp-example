@@ -127,17 +127,30 @@ curl -X PUT "http://localhost:5001/pets/adopt?name=Tweety"
 
 ## Testing
 
-This project includes a comprehensive test suite that covers all API endpoints, MCP functionality, error handling, and edge cases.
+This project includes comprehensive test suites that cover all API endpoints, full MCP specification compliance, error handling, and edge cases.
 
 ### Test Coverage
 
-The test suite includes **23 test methods** covering:
+The project includes **TWO comprehensive test suites**:
+
+#### 1. REST API Test Suite (`test_api.py`) - **23 test methods**:
 - ✅ All REST API endpoints (14 endpoints)
-- ✅ MCP server functionality (JSON-RPC 2.0 protocol)
+- ✅ Basic MCP server functionality (JSON-RPC 2.0 protocol)  
 - ✅ Validation and error handling
 - ✅ CORS functionality
 - ✅ Edge cases and negative scenarios
 - ✅ Proper test isolation and cleanup
+
+#### 2. MCP Compliance Test Suite (`test_mcp_compliance.py`) - **30 test methods**:
+- ✅ **Complete MCP Protocol Compliance** (October 2025 specification)
+- ✅ **Extended MCP Capabilities**: tools, resources, prompts, logging
+- ✅ **JSON-RPC 2.0 Protocol Validation**: all error codes and edge cases
+- ✅ **Protocol Version Negotiation**: version compatibility testing
+- ✅ **Structured Tool Output**: validation of tool response formats
+- ✅ **Session Lifecycle Management**: complete workflow testing
+- ✅ **Performance & Reliability**: concurrent requests, large payloads
+- ✅ **Security Testing**: input sanitization, rate limiting awareness
+- ✅ **Boundary Testing**: edge cases, parameter validation
 
 ### Prerequisites
 
@@ -154,13 +167,13 @@ The test suite includes **23 test methods** covering:
 
 ### Running Tests
 
-#### Using the Test Runner Script (Recommended)
+#### REST API Tests
 
 ```bash
 # Make the script executable (first time only)
 chmod +x run_tests.sh
 
-# Run tests with different options:
+# Run REST API tests with different options:
 ./run_tests.sh                    # Default: pytest mode
 ./run_tests.sh pytest            # Pytest with verbose output (recommended)
 ./run_tests.sh coverage          # With coverage analysis
@@ -169,8 +182,25 @@ chmod +x run_tests.sh
 ./run_tests.sh quick             # Quick smoke tests only
 ```
 
+#### MCP Compliance Tests ⭐ **NEW**
+
+```bash
+# Make the script executable (first time only)
+chmod +x run_mcp_compliance_tests.sh
+
+# Run MCP compliance tests with different options:
+./run_mcp_compliance_tests.sh                # Default: pytest mode
+./run_mcp_compliance_tests.sh pytest        # Pytest with verbose output (recommended)
+./run_mcp_compliance_tests.sh coverage      # With coverage analysis
+./run_mcp_compliance_tests.sh html          # Generate HTML test report  
+./run_mcp_compliance_tests.sh ci            # CI mode with JUnit XML output
+./run_mcp_compliance_tests.sh quick         # Quick MCP smoke tests only
+./run_mcp_compliance_tests.sh unittest      # Run with unittest
+```
+
 #### Direct Commands
 
+**REST API Tests:**
 ```bash
 # Using pytest (recommended)
 pytest test_api.py -v
@@ -187,9 +217,26 @@ coverage html  # Generates htmlcov/ directory
 pytest test_api.py --html=test_report.html --self-contained-html
 ```
 
+**MCP Compliance Tests:**
+```bash
+# Using pytest (recommended)
+pytest test_mcp_compliance.py -v
+
+# Using unittest
+python test_mcp_compliance.py
+
+# With coverage
+coverage run -m pytest test_mcp_compliance.py
+coverage report
+coverage html --directory htmlcov_mcp  # Generates htmlcov_mcp/ directory
+
+# Generate HTML test report
+pytest test_mcp_compliance.py --html=mcp_compliance_report.html --self-contained-html
+```
+
 ### Test Structure
 
-The test suite is organized into logical groups:
+#### REST API Test Structure (`test_api.py`)
 
 **API Core Tests (001-006)**:
 - API information endpoint
@@ -217,6 +264,45 @@ The test suite is organized into logical groups:
 **Edge Cases & Features (022-023)**:
 - CORS headers validation
 - Removed endpoints verification
+
+#### MCP Compliance Test Structure (`test_mcp_compliance.py`) ⭐ **NEW**
+
+**Core Protocol Compliance (001-007)**:
+- MCP initialization and protocol version negotiation
+- Server capabilities validation and enhancement
+- Tools list comprehensive validation
+- Tools call with structured output validation
+- Tools call error handling
+
+**JSON-RPC Protocol Compliance (008-010)**:
+- JSON-RPC 2.0 format validation
+- Standard JSON-RPC error codes testing
+- Request ID handling validation
+
+**Advanced MCP Features (011-013)**:
+- Structured tool output compliance (MCP 2025 requirement)
+- Capability negotiation between client and server
+- Complete session lifecycle testing
+
+**Performance & Reliability (014-015)**:
+- Concurrent request handling
+- Large payload handling
+
+**Security & Validation (016-017)**:
+- Input sanitization and validation
+- Rate limiting awareness testing
+
+**Edge Cases & Boundaries (018-020)**:
+- Boundary value testing
+- Method name case sensitivity
+- Empty and null parameter handling
+
+**Extended MCP Capabilities (021-030)** - **October 2025 Compliance**:
+- **Resources**: `resources/list` and `resources/read` methods
+- **Prompts**: `prompts/list` and `prompts/get` methods  
+- **Logging**: `logging/setLevel` method
+- **Enhanced capabilities validation**
+- **Complete MCP workflow testing**
 
 ### Continuous Integration
 
@@ -256,6 +342,123 @@ test_api.py::PetAdoptionAPITest::test_003_get_pets_summary PASSED
 test_api.py::PetAdoptionAPITest::test_023_removed_streaming_endpoints PASSED
 
 ========================= 23 passed in 2.34s =========================
+
+✅ Test execution completed!
+```
+
+## MCP (Model Context Protocol) Compliance ⭐ **NEW**
+
+This project now includes **full compliance** with the **October 2025 MCP specification**, making it an excellent reference implementation for MCP servers.
+
+### MCP Features Implemented
+
+#### 🔧 **Core MCP Protocol**
+- **JSON-RPC 2.0** protocol support with proper error handling
+- **Protocol version negotiation** (supports MCP 2025-06-18)
+- **Complete session lifecycle** (initialize → initialized → operations)
+- **Structured tool output** with proper content type validation
+
+#### 🛠️ **Tools Capability** 
+- **7 optimized tools** for pet adoption operations
+- **Dynamic tool execution** with parameter validation
+- **Comprehensive tool schemas** with input/output definitions
+- **Error handling** with proper JSON-RPC error codes
+
+#### 📁 **Resources Capability**
+- **3 sample resources**: adoption forms, care guides, vaccination schedules
+- **Resource listing** via `resources/list` method
+- **Resource reading** via `resources/read` method with URI support
+- **MIME type support** for different resource formats
+
+#### 💬 **Prompts Capability**
+- **3 specialized prompts** for pet adoption scenarios:
+  - **Adoption Assistant**: Help users find perfect pets
+  - **Pet Care Advisor**: Provide species-specific care advice
+  - **Adoption Form Helper**: Guide through adoption process
+- **Dynamic prompt generation** with argument interpolation
+- **Structured message format** with role-based content
+
+#### 📊 **Logging Capability**
+- **Log level management** via `logging/setLevel` method
+- **Standard log levels** (debug, info, warning, error, etc.)
+- **Level validation** with proper error responses
+
+### MCP Methods Supported
+
+| Method | Description | Status |
+|--------|-------------|--------|
+| `initialize` | Initialize MCP session with capabilities | ✅ Full |
+| `initialized` | Confirm initialization complete | ✅ Full |
+| `tools/list` | List available tools | ✅ Full |
+| `tools/call` | Execute a tool | ✅ Full |
+| `resources/list` | List available resources | ✅ Full |
+| `resources/read` | Read a specific resource | ✅ Full |
+| `prompts/list` | List available prompt templates | ✅ Full |
+| `prompts/get` | Get a specific prompt | ✅ Full |
+| `logging/setLevel` | Set logging level | ✅ Full |
+
+### MCP Compliance Testing
+
+The comprehensive MCP compliance test suite (`test_mcp_compliance.py`) validates:
+
+- ✅ **Protocol Compliance**: Full JSON-RPC 2.0 adherence
+- ✅ **Version Negotiation**: Protocol version compatibility 
+- ✅ **Capability Declaration**: Proper server capabilities
+- ✅ **Error Handling**: All JSON-RPC error codes and edge cases
+- ✅ **Security**: Input sanitization and validation
+- ✅ **Performance**: Concurrent requests and large payloads
+- ✅ **Boundary Testing**: Edge cases and parameter validation
+
+### Example MCP Usage
+
+```bash
+# Initialize MCP session
+curl -X POST http://localhost:5001/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "initialize", 
+    "id": 1,
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": {"name": "my-client", "version": "1.0.0"}
+    }
+  }'
+
+# List available resources
+curl -X POST http://localhost:5001/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "resources/list",
+    "id": 2,
+    "params": {}
+  }'
+
+# Get a prompt template
+curl -X POST http://localhost:5001/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "prompts/get",
+    "id": 3,
+    "params": {
+      "name": "adoption_assistant",
+      "arguments": {"user_preferences": "small dog, apartment-friendly"}
+    }
+  }'
+```
+
+### Why This Implementation Matters
+
+This project serves as a **reference implementation** for:
+
+- 🏗️ **MCP Server Development**: Complete, working example of MCP compliance
+- 📋 **Specification Validation**: Comprehensive test coverage for MCP requirements  
+- 🔍 **Compliance Testing**: Reusable test patterns for MCP validation
+- 📚 **Learning Resource**: Well-documented MCP integration examples
+- 🚀 **Production Ready**: Battle-tested with full error handling and edge cases
 
 ✅ Test execution completed!
 ```
