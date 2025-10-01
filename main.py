@@ -63,6 +63,13 @@ async def health_check():
     }
 
 
+# Include routers
+from routers import pets_router, mcp_router
+
+app.include_router(pets_router, prefix="/api/v1")
+app.include_router(mcp_router, prefix="/api/v1")
+
+
 # Temporary root endpoint (will be moved to routers later)
 @app.get("/")
 async def root():
@@ -72,10 +79,15 @@ async def root():
         "version": settings.app_version,
         "docs": f"{settings.docs_url}",
         "redoc": f"{settings.redoc_url}",
+        "api": {
+            "pets": "/api/v1/pets",
+            "mcp": "/api/v1/mcp"
+        },
         "mcp": {
             "protocol_version": settings.mcp_protocol_version,
             "server_name": settings.mcp_server_name,
-            "server_version": settings.mcp_server_version
+            "server_version": settings.mcp_server_version,
+            "info_endpoint": "/api/v1/mcp/info"
         }
     }
 
