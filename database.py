@@ -50,8 +50,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     """Initialize database tables."""
     async with engine.begin() as conn:
-        # Import all models here to ensure they are registered
-        from models import pet  # noqa
+        # Import all models here to ensure they are registered with Base
+        from models import Pet  # noqa
         await conn.run_sync(Base.metadata.create_all)
 
 
