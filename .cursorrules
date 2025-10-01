@@ -1,0 +1,187 @@
+# Cursor Rules for Resty MCP Example - Pet Adoption API with FastAPI
+
+## Base Framework Rules
+@https://cursor.directory/rules/fastapi
+
+## FastAPI Expert Guidelines
+
+You are an expert in Python, FastAPI, and scalable API development.
+
+### Key Principles
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; avoid classes where possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+- Favor named exports for routes and utility functions.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+
+### Python/FastAPI
+- Use `def` for pure functions and `async def` for asynchronous operations.
+- Use type hints for all function signatures.
+- Prefer Pydantic models over raw dictionaries for input validation.
+- File structure: exported routers, sub-routes, utilities, static content, and types (models, schemas).
+- Avoid unnecessary curly braces in conditional statements.
+- For single-line statements in conditionals, omit curly braces.
+- Use concise, one-line syntax for simple conditional statements (e.g., if condition: do_something()).
+
+### Error Handling and Validation
+- Prioritize error handling and edge cases:
+- Handle errors and edge cases at the beginning of functions.
+- Use early returns for error conditions to avoid deeply nested if statements.
+- Place the happy path last in the function for improved readability.
+- Avoid unnecessary else statements; use the if-return pattern instead.
+- Use guard clauses to handle preconditions and invalid states early.
+- Use HTTPException for expected errors and model them as specific HTTP responses.
+- Use middleware for handling unexpected errors, logging, and error monitoring.
+- Use Pydantic's BaseModel for consistent input/output validation and response schemas.
+
+### Dependencies
+- FastAPI
+- Pydantic v2
+- Async database libraries like asyncpg or aiomysql
+- SQLAlchemy 2.0 (if using ORM features)
+- uvicorn (ASGI server)
+- python-multipart (for form data)
+- python-jose[cryptography] (for JWT)
+
+### FastAPI-Specific Guidelines
+- Use functional components (plain functions) and Pydantic models for input validation and response schemas.
+- Use declarative route definitions with clear return type annotations.
+- Use `def` for synchronous operations and `async def` for asynchronous ones.
+- Minimize `@app.on_event("startup")` and `@app.on_event("shutdown")`; prefer lifespan context managers for managing startup and shutdown events.
+- Use middleware for logging, error monitoring, and performance optimization.
+- Rely on FastAPI's dependency injection system for managing state and shared resources.
+- Use APIRouter to organize routes into logical modules.
+- Implement proper OpenAPI documentation with response models and examples.
+
+### Performance Optimization
+- Minimize blocking I/O operations; use asynchronous operations for all database calls and external API requests.
+- Implement caching for static and frequently accessed data using tools like Redis or in-memory stores.
+- Optimize data serialization and deserialization with Pydantic.
+- Use lazy loading techniques for large datasets and substantial API responses.
+- Prioritize API performance metrics (response time, latency, throughput).
+
+### Key Conventions
+1. Rely on FastAPI's dependency injection system for managing state and shared resources.
+2. Prioritize API performance metrics (response time, latency, throughput).
+3. Structure routes and dependencies clearly to optimize readability and maintainability.
+4. Limit blocking operations in routes:
+   - Favor asynchronous and non-blocking flows.
+   - Use dedicated async functions for database and external API operations.
+
+### Database Interaction
+- Use async SQLAlchemy 2.0 for ORM operations.
+- Implement async database session management.
+- Use dependency injection for database sessions.
+- Handle database connections properly with async context managers.
+
+### Authentication and Authorization
+- Implement JWT-based authentication with python-jose.
+- Use FastAPI's dependency injection for authentication.
+- Create reusable dependencies for different permission levels.
+
+### Testing
+- Write async tests using pytest-asyncio.
+- Use FastAPI's test client for integration testing.
+- Mock external dependencies and database operations.
+- Test both sync and async endpoints appropriately.
+
+### API Documentation
+- Use FastAPI's automatic OpenAPI documentation.
+- Define clear response models with examples.
+- Use proper HTTP status codes and error responses.
+- Include comprehensive docstrings and parameter descriptions.
+
+### Deployment
+- Use uvicorn as ASGI server for development.
+- Use gunicorn with uvicorn workers for production.
+- Implement proper logging and monitoring.
+- Use environment variables for configuration.
+
+## Project-Specific MCP Rules
+
+### Model Context Protocol (MCP) Implementation
+- Follow MCP specification October 2025 (protocol version 2025-06-18)
+- Implement JSON-RPC 2.0 protocol strictly:
+  - Always include "jsonrpc": "2.0" field
+  - Handle all standard error codes (-32700, -32600, -32601, -32602, -32603)
+  - Maintain request/response ID consistency
+- Support all MCP capabilities:
+  - tools: Core tool execution capability
+  - resources: File and document access capability  
+  - prompts: Template and prompt management capability
+  - logging: Log level management capability
+
+### MCP Method Implementation
+- initialize: Protocol negotiation and capability exchange
+- initialized: Confirmation of initialization completion
+- tools/list: Enumerate available tools with schemas
+- tools/call: Execute tools with structured output
+- resources/list: List available resources with metadata
+- resources/read: Retrieve resource content by URI
+- prompts/list: Enumerate prompt templates
+- prompts/get: Retrieve specific prompts with arguments
+- logging/setLevel: Manage logging levels
+
+### MCP Response Format
+- All tool outputs must use structured content format
+- Content must be array of objects with "type" and appropriate content fields
+- Include "isError" boolean field in tool call responses
+- Validate all input parameters before processing
+- Return descriptive error messages for invalid inputs
+
+### FastAPI MCP Integration
+- Use async def for all MCP endpoint handlers
+- Implement MCP endpoints using FastAPI routers
+- Use Pydantic models for MCP request/response validation
+- Handle JSON-RPC protocol using FastAPI's request/response models
+- Implement proper error handling with HTTPException for HTTP errors and structured JSON-RPC errors for MCP protocol errors
+
+### Testing Requirements
+- Maintain comprehensive test coverage for all MCP methods
+- Test all JSON-RPC error scenarios and edge cases
+- Validate protocol version negotiation
+- Test capability declaration and validation
+- Include performance and security testing
+- Test concurrent request handling
+- Use async test patterns for MCP endpoints
+
+### Pet Adoption Domain Rules
+- Pet model must include: id, name, species, breed, age, description, is_adopted, created_at
+- Use Pydantic models for pet data validation and serialization
+- Validate species against common pet types
+- Implement adoption workflow with proper state management
+- Support async search and filtering by multiple criteria
+- Provide statistical summaries and reports
+- Maintain data integrity during operations
+- Use async database operations for all pet-related queries
+
+### Code Organization for FastAPI
+- Organize MCP routes in separate router modules (e.g., routers/mcp.py)
+- Keep pet adoption routes in dedicated router (e.g., routers/pets.py)
+- Use consistent naming: async def handle_mcp_{method_name} for MCP method handlers
+- Group related functionality (tools, resources, prompts) together
+- Maintain clear separation between protocol logic and business logic
+- Include comprehensive documentation for all MCP-specific code
+- Use dependency injection for shared services (database, caching, etc.)
+
+### Error Handling Specific to FastAPI MCP
+- Use HTTPException for HTTP-level errors
+- Return structured JSON-RPC error responses for MCP protocol errors
+- Log errors appropriately without exposing sensitive information
+- Provide helpful error messages that aid debugging
+- Handle malformed JSON gracefully with proper HTTP status codes
+- Validate protocol version compatibility
+- Use FastAPI's exception handlers for global error management
+
+### Documentation Requirements
+- Document all MCP methods with FastAPI's automatic OpenAPI integration
+- Provide curl examples for testing
+- Include Pydantic schema definitions for all tools
+- Document resource URIs and content types
+- Explain prompt templates and their arguments
+- Maintain up-to-date API documentation with response examples
+- Use FastAPI's response model documentation features
+
+Refer to FastAPI documentation for detailed information on routers, dependencies, and middleware for best practices.
