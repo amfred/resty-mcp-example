@@ -47,6 +47,17 @@ async def create_pet(pet_data: PetCreate, db: DatabaseDep):
         )
 
 
+@router.get("/summary", response_model=PetSummary)
+async def get_pets_summary(db: DatabaseDep):
+    """
+    Get comprehensive pet statistics by species and adoption status.
+    
+    Returns detailed statistics including counts by species and overall totals.
+    """
+    summary = await StatsService.get_pets_summary(db)
+    return PetSummary(**summary)
+
+
 @router.get("/{pet_id}", response_model=Pet)
 async def get_pet(pet_id: int, db: DatabaseDep):
     """
@@ -173,17 +184,6 @@ async def search_pets(
         max_age=max_age
     )
     return pets
-
-
-@router.get("/summary", response_model=PetSummary)
-async def get_pets_summary(db: DatabaseDep):
-    """
-    Get comprehensive pet statistics by species and adoption status.
-    
-    Returns detailed statistics including counts by species and overall totals.
-    """
-    summary = await StatsService.get_pets_summary(db)
-    return PetSummary(**summary)
 
 
 @router.get("/available", response_model=List[Pet])
