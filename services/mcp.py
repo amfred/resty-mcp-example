@@ -72,6 +72,12 @@ class MCPService:
         elif tool_name == "get_adoption_stats":
             return await MCPService._execute_get_adoption_stats(db)
             
+        elif tool_name == "list_all_pets":
+            return await MCPService._execute_list_all_pets(db)
+            
+        elif tool_name == "delete_pet":
+            return await MCPService._execute_delete_pet(db, arguments)
+            
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
 
@@ -334,6 +340,55 @@ class MCPService:
         return await StatsService.get_adoption_stats(db)
 
     @staticmethod
+    async def _execute_list_all_pets(db: AsyncSession) -> Dict[str, Any]:
+        """Execute the list_all_pets tool."""
+        pets = await PetService.get_all_pets(db)
+        return {
+            'pets': [
+                {
+                    'id': pet.id,
+                    'name': pet.name,
+                    'species': pet.species,
+                    'breed': pet.breed,
+                    'age': pet.age,
+                    'description': pet.description,
+                    'is_adopted': pet.is_adopted,
+                    'created_at': pet.created_at.isoformat() if pet.created_at else None,
+                    'updated_at': pet.updated_at.isoformat() if pet.updated_at else None
+                }
+                for pet in pets
+            ],
+            'total_count': len(pets)
+        }
+
+    @staticmethod
+    async def _execute_delete_pet(db: AsyncSession, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute the delete_pet tool."""
+        pet_id = arguments.get('pet_id')
+        pet_name = arguments.get('pet_name')
+        
+        if not pet_id and not pet_name:
+            raise ValueError("Either pet_id or pet_name must be provided")
+        
+        # If pet_name is provided, find the pet first
+        if pet_name and not pet_id:
+            pet = await PetService.find_pet_by_name(db, pet_name)
+            if not pet:
+                raise ValueError(f"Pet with name '{pet_name}' not found")
+            pet_id = pet.id
+        
+        # Delete the pet
+        success = await PetService.delete_pet(db, pet_id)
+        
+        if not success:
+            raise ValueError(f"Failed to delete pet with ID {pet_id}")
+        
+        return {
+            'message': f'Pet with ID {pet_id} has been successfully deleted',
+            'deleted_pet_id': pet_id
+        }
+
+    @staticmethod
     def get_available_tools() -> List[MCPTool]:
         """
         Get list of all available MCP tools.
@@ -477,6 +532,29 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {},
+                    "required": []
+                }
+            ),
+            MCPTool(
+                name="list_all_pets",
+                title="List All Pets",
+                description="Get a complete list of all pets in the system",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            ),
+            MCPTool(
+                name="delete_pet",
+                title="Delete Pet",
+                description="Remove a pet from the system by ID or name",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "pet_id": {"type": "integer", "description": "Pet ID to delete"},
+                        "pet_name": {"type": "string", "description": "Pet name to delete (alternative to pet_id)"}
+                    },
                     "required": []
                 }
             )
