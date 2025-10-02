@@ -484,6 +484,94 @@ The application comes with 5 sample pets:
 - Max (Labrador)
 - Luna (Siamese Cat)
 
+## MCP Tools vs REST APIs Comparison
+
+This project provides **dual interfaces** for different integration scenarios:
+
+### 🔧 MCP Tools (12 total) - LLM Optimized
+
+| Tool | Description | Use Case |
+|------|-------------|----------|
+| `list_all_pets` | Get complete list of all pets | Overview for AI assistants |
+| `get_pet_by_id` | Get specific pet by ID | Direct pet lookup |
+| `get_pet_by_name` | Find pet by name | Natural language queries |
+| `create_pet` | Add new pet to system | Pet registration |
+| `update_pet_info` | Update pet details | Information management |
+| `delete_pet` | Remove pet by ID or name | Pet removal |
+| `adopt_pet_by_name` | Adopt pet by searching name | Natural adoption process |
+| `search_pets` | Search with filters | Advanced pet discovery |
+| `get_available_pets` | Get adoptable pets only | Adoption-focused queries |
+| `get_pets_summary` | Get comprehensive statistics | Data analysis |
+| `get_valid_species` | Get valid pet species list | Form validation |
+| `get_adoption_stats` | Get adoption statistics | Reporting and analytics |
+
+### 🌐 REST API Endpoints (12 total) - Programmatic Integration
+
+| Endpoint | Method | Description | Use Case |
+|----------|--------|-------------|----------|
+| `/api/v1/pets/` | GET | List all pets | Data retrieval |
+| `/api/v1/pets/` | POST | Create new pet | Pet registration |
+| `/api/v1/pets/{id}` | GET | Get pet by ID | Direct lookup |
+| `/api/v1/pets/{id}` | PUT | Update pet | Information management |
+| `/api/v1/pets/{id}` | DELETE | Delete pet | Pet removal |
+| `/api/v1/pets/{id}/adopt` | PUT | Adopt pet by ID | Adoption process |
+| `/api/v1/pets/adopt` | PUT | Adopt pet by name | Name-based adoption |
+| `/api/v1/pets/search` | GET | Search with filters | Advanced queries |
+| `/api/v1/pets/available` | GET | Get available pets | Adoption focus |
+| `/api/v1/pets/summary` | GET | Get statistics | Data analysis |
+| `/api/v1/pets/species` | GET | Get valid species | Form validation |
+| `/api/v1/pets/batch` | POST | Create multiple pets | Bulk operations |
+
+### 🎯 Design Rationale: Why the Lists Are Different
+
+#### **MCP Tools Focus on LLM Interactions:**
+- **Natural Language Operations**: Tools like `get_pet_by_name` and `adopt_pet_by_name` are optimized for conversational AI
+- **High-Level Abstractions**: `get_pets_summary` and `get_adoption_stats` provide aggregated insights
+- **Semantic Operations**: Focus on business logic rather than CRUD operations
+- **Flexible Input**: Tools accept both ID and name parameters for maximum flexibility
+
+#### **REST APIs Focus on Programmatic Integration:**
+- **Standard HTTP Methods**: Proper use of GET, POST, PUT, DELETE following REST conventions
+- **Resource-Based URLs**: Clear resource hierarchy (`/pets/{id}`, `/pets/{id}/adopt`)
+- **HTTP Status Codes**: Appropriate status codes for different scenarios
+- **Batch Operations**: `POST /batch` for bulk operations not available in MCP
+- **Granular Control**: More specific endpoints for different use cases
+
+#### **Complementary Coverage:**
+- **No Redundancy**: Each interface serves its target audience effectively
+- **Complete Coverage**: All major operations available through at least one interface
+- **Appropriate Granularity**: MCP tools are higher-level, REST APIs are more granular
+- **Different Strengths**: MCP excels at natural language, REST excels at programmatic control
+
+### 📊 Coverage Analysis
+
+| Functionality | MCP Tool | REST API | Coverage |
+|---------------|----------|----------|----------|
+| **List All Pets** | ✅ | ✅ | Both |
+| **Get Pet by ID** | ✅ | ✅ | Both |
+| **Get Pet by Name** | ✅ | ❌ | MCP only |
+| **Create Pet** | ✅ | ✅ | Both |
+| **Update Pet** | ✅ | ✅ | Both |
+| **Delete Pet** | ✅ | ✅ | Both |
+| **Adopt by ID** | ❌ | ✅ | REST only |
+| **Adopt by Name** | ✅ | ✅ | Both |
+| **Search Pets** | ✅ | ✅ | Both |
+| **Get Available** | ✅ | ✅ | Both |
+| **Get Summary** | ✅ | ✅ | Both |
+| **Get Species** | ✅ | ✅ | Both |
+| **Batch Create** | ❌ | ✅ | REST only |
+| **Get Stats** | ✅ | ❌ | MCP only |
+
+### 🏆 Result: Exemplary API Design
+
+This implementation demonstrates **excellent API design principles**:
+- **MCP tools** are optimized for AI/LLM interactions with natural language operations
+- **REST APIs** provide comprehensive programmatic access with standard HTTP conventions
+- **Both interfaces** serve their intended audiences without unnecessary overlap
+- **The balance** is nearly perfect for a pet adoption system
+
+This project shows how to properly design dual interfaces for different integration scenarios!
+
 ## Development
 
 This is a simple FastAPI application perfect for:
