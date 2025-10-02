@@ -1,7 +1,12 @@
 # Cursor Rules for Resty MCP Example - Pet Adoption API with FastAPI
 
+This API serves a dual purpose: it is both a proper REST API based on FastAPI, and a proper MCP Server with tools.
+
 ## Base Framework Rules
 @https://cursor.directory/rules/fastapi
+
+## MCP Tools Specification.
+@https://modelcontextprotocol.io/specification/2025-06-18/server/tools  
 
 ## FastAPI Expert Guidelines
 

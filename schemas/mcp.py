@@ -107,10 +107,10 @@ class MCPClientInfo(BaseModel):
 
 class MCPServerCapabilities(BaseModel):
     """Server capabilities declaration."""
-    tools: Optional[Dict[str, Any]] = Field(None, description="Tools capability")
-    resources: Optional[Dict[str, Any]] = Field(None, description="Resources capability")
-    prompts: Optional[Dict[str, Any]] = Field(None, description="Prompts capability")
-    logging: Optional[Dict[str, Any]] = Field(None, description="Logging capability")
+    tools: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Tools capability")
+    resources: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Resources capability")
+    prompts: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Prompts capability")
+    logging: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Logging capability")
 
 
 class MCPInitializeParams(BaseModel):
@@ -182,6 +182,10 @@ class MCPTool(BaseModel):
         None,
         description="Output result schema"
     )
+    annotations: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Tool behavior annotations for trust & safety"
+    )
 
 
 class MCPToolsListResult(BaseModel):
@@ -214,6 +218,10 @@ class MCPContent(BaseModel):
     text: Optional[str] = Field(None, description="Text content")
     data: Optional[str] = Field(None, description="Base64 encoded data")
     mimeType: Optional[str] = Field(None, description="MIME type")
+    annotations: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Content annotations for metadata"
+    )
 
 
 class MCPToolCallResult(BaseModel):
@@ -221,6 +229,10 @@ class MCPToolCallResult(BaseModel):
     content: List[MCPContent] = Field(
         ...,
         description="Structured tool output content"
+    )
+    structuredContent: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Structured content for programmatic access"
     )
     isError: bool = Field(
         default=False,

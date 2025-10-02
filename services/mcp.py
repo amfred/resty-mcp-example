@@ -391,10 +391,10 @@ class MCPService:
     @staticmethod
     def get_available_tools() -> List[MCPTool]:
         """
-        Get list of all available MCP tools.
+        Get list of all available MCP tools with enhanced MCP compliance.
         
         Returns:
-            List of MCPTool schemas describing available tools
+            List of MCPTool schemas describing available tools with annotations and output schemas
         """
         return [
             MCPTool(
@@ -404,20 +404,43 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {},
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False
                 },
                 outputSchema={
                     "type": "object",
                     "properties": {
                         "summary_by_species": {
                             "type": "object",
-                            "description": "Statistics grouped by pet species"
+                            "description": "Statistics grouped by pet species",
+                            "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                    "total": {"type": "integer"},
+                                    "adopted": {"type": "integer"},
+                                    "available": {"type": "integer"}
+                                }
+                            }
                         },
                         "overall_totals": {
                             "type": "object",
-                            "description": "Overall adoption statistics"
+                            "description": "Overall adoption statistics",
+                            "properties": {
+                                "total_pets": {"type": "integer"},
+                                "adopted_pets": {"type": "integer"},
+                                "available_pets": {"type": "integer"},
+                                "adoption_rate": {"type": "number"}
+                            }
                         }
-                    }
+                    },
+                    "required": ["summary_by_species", "overall_totals"],
+                    "additionalProperties": False
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.9,
+                    "category": "analytics",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -427,13 +450,57 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "species": {"type": "string", "description": "Filter by species"},
-                        "breed": {"type": "string", "description": "Filter by breed"},
-                        "available_only": {"type": "boolean", "description": "Only available pets"},
-                        "min_age": {"type": "integer", "description": "Minimum age"},
-                        "max_age": {"type": "integer", "description": "Maximum age"}
+                        "species": {
+                            "type": "string",
+                            "description": "Filter by species",
+                            "examples": ["Dog", "Cat", "Bird"]
+                        },
+                        "breed": {
+                            "type": "string",
+                            "description": "Filter by breed"
+                        },
+                        "available_only": {
+                            "type": "boolean",
+                            "description": "Only available pets",
+                            "default": False
+                        },
+                        "min_age": {
+                            "type": "integer",
+                            "description": "Minimum age",
+                            "minimum": 0
+                        },
+                        "max_age": {
+                            "type": "integer",
+                            "description": "Maximum age",
+                            "minimum": 0
+                        }
                     },
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "name": {"type": "string"},
+                            "species": {"type": "string"},
+                            "breed": {"type": "string"},
+                            "age": {"type": "integer"},
+                            "description": {"type": "string"},
+                            "is_adopted": {"type": "boolean"},
+                            "created_at": {"type": "string", "format": "date-time"},
+                            "updated_at": {"type": "string", "format": "date-time"}
+                        },
+                        "required": ["id", "name", "species", "is_adopted"]
+                    }
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.8,
+                    "category": "search",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -443,13 +510,58 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string", "description": "Pet name"},
-                        "species": {"type": "string", "description": "Pet species"},
-                        "breed": {"type": "string", "description": "Pet breed (optional)"},
-                        "age": {"type": "integer", "description": "Pet age (optional)"},
-                        "description": {"type": "string", "description": "Pet description (optional)"}
+                        "name": {
+                            "type": "string",
+                            "description": "Pet name",
+                            "minLength": 1,
+                            "maxLength": 100
+                        },
+                        "species": {
+                            "type": "string",
+                            "description": "Pet species",
+                            "enum": ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Guinea Pig", "Fish", "Reptile"]
+                        },
+                        "breed": {
+                            "type": "string",
+                            "description": "Pet breed (optional)",
+                            "maxLength": 100
+                        },
+                        "age": {
+                            "type": "integer",
+                            "description": "Pet age (optional)",
+                            "minimum": 0,
+                            "maximum": 30
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Pet description (optional)",
+                            "maxLength": 500
+                        }
                     },
-                    "required": ["name", "species"]
+                    "required": ["name", "species"],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "species": {"type": "string"},
+                        "breed": {"type": "string"},
+                        "age": {"type": "integer"},
+                        "description": {"type": "string"},
+                        "is_adopted": {"type": "boolean"},
+                        "created_at": {"type": "string", "format": "date-time"},
+                        "updated_at": {"type": "string", "format": "date-time"}
+                    },
+                    "required": ["id", "name", "species", "is_adopted", "created_at"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.7,
+                    "category": "modification",
+                    "requiresConfirmation": True,
+                    "sensitiveOperation": True
                 }
             ),
             MCPTool(
@@ -459,9 +571,31 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string", "description": "Pet name to search for"}
+                        "name": {
+                            "type": "string",
+                            "description": "Pet name to search for",
+                            "minLength": 1
+                        }
                     },
-                    "required": ["name"]
+                    "required": ["name"],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string"},
+                        "pet_id": {"type": "integer"},
+                        "pet_name": {"type": "string"},
+                        "is_adopted": {"type": "boolean"}
+                    },
+                    "required": ["message", "pet_id", "pet_name", "is_adopted"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.8,
+                    "category": "modification",
+                    "requiresConfirmation": True,
+                    "sensitiveOperation": True
                 }
             ),
             MCPTool(
@@ -471,14 +605,63 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "pet_id": {"type": "integer", "description": "Pet ID to update"},
-                        "name": {"type": "string", "description": "New pet name"},
-                        "species": {"type": "string", "description": "New pet species"},
-                        "breed": {"type": "string", "description": "New pet breed"},
-                        "age": {"type": "integer", "description": "New pet age"},
-                        "description": {"type": "string", "description": "New pet description"}
+                        "pet_id": {
+                            "type": "integer",
+                            "description": "Pet ID to update",
+                            "minimum": 1
+                        },
+                        "name": {
+                            "type": "string",
+                            "description": "New pet name",
+                            "minLength": 1,
+                            "maxLength": 100
+                        },
+                        "species": {
+                            "type": "string",
+                            "description": "New pet species",
+                            "enum": ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Guinea Pig", "Fish", "Reptile"]
+                        },
+                        "breed": {
+                            "type": "string",
+                            "description": "New pet breed",
+                            "maxLength": 100
+                        },
+                        "age": {
+                            "type": "integer",
+                            "description": "New pet age",
+                            "minimum": 0,
+                            "maximum": 30
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "New pet description",
+                            "maxLength": 500
+                        }
                     },
-                    "required": ["pet_id"]
+                    "required": ["pet_id"],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "species": {"type": "string"},
+                        "breed": {"type": "string"},
+                        "age": {"type": "integer"},
+                        "description": {"type": "string"},
+                        "is_adopted": {"type": "boolean"},
+                        "created_at": {"type": "string", "format": "date-time"},
+                        "updated_at": {"type": "string", "format": "date-time"}
+                    },
+                    "required": ["id", "name", "species", "is_adopted", "updated_at"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.7,
+                    "category": "modification",
+                    "requiresConfirmation": True,
+                    "sensitiveOperation": True
                 }
             ),
             MCPTool(
@@ -488,7 +671,35 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {},
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "species": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "All valid pet species"
+                        },
+                        "existing_in_database": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Species currently in database"
+                        },
+                        "common_options": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Common pet species options"
+                        }
+                    },
+                    "required": ["species", "existing_in_database", "common_options"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.6,
+                    "category": "reference",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -498,9 +709,35 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string", "description": "Pet name to search for"}
+                        "name": {
+                            "type": "string",
+                            "description": "Pet name to search for",
+                            "minLength": 1
+                        }
                     },
-                    "required": ["name"]
+                    "required": ["name"],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "species": {"type": "string"},
+                        "breed": {"type": "string"},
+                        "age": {"type": "integer"},
+                        "description": {"type": "string"},
+                        "is_adopted": {"type": "boolean"},
+                        "created_at": {"type": "string", "format": "date-time"},
+                        "updated_at": {"type": "string", "format": "date-time"}
+                    },
+                    "required": ["id", "name", "species", "is_adopted"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.8,
+                    "category": "search",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -510,9 +747,35 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "pet_id": {"type": "integer", "description": "Pet ID to retrieve"}
+                        "pet_id": {
+                            "type": "integer",
+                            "description": "Pet ID to retrieve",
+                            "minimum": 1
+                        }
                     },
-                    "required": ["pet_id"]
+                    "required": ["pet_id"],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "species": {"type": "string"},
+                        "breed": {"type": "string"},
+                        "age": {"type": "integer"},
+                        "description": {"type": "string"},
+                        "is_adopted": {"type": "boolean"},
+                        "created_at": {"type": "string", "format": "date-time"},
+                        "updated_at": {"type": "string", "format": "date-time"}
+                    },
+                    "required": ["id", "name", "species", "is_adopted"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.8,
+                    "category": "search",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -522,7 +785,32 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {},
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "name": {"type": "string"},
+                            "species": {"type": "string"},
+                            "breed": {"type": "string"},
+                            "age": {"type": "integer"},
+                            "description": {"type": "string"},
+                            "is_adopted": {"type": "boolean"},
+                            "created_at": {"type": "string", "format": "date-time"},
+                            "updated_at": {"type": "string", "format": "date-time"}
+                        },
+                        "required": ["id", "name", "species", "is_adopted"]
+                    }
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.9,
+                    "category": "search",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -532,7 +820,35 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {},
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "total_pets": {"type": "integer"},
+                        "adopted_pets": {"type": "integer"},
+                        "available_pets": {"type": "integer"},
+                        "adoption_rate": {"type": "number"},
+                        "species_breakdown": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                    "total": {"type": "integer"},
+                                    "adopted": {"type": "integer"},
+                                    "available": {"type": "integer"}
+                                }
+                            }
+                        }
+                    },
+                    "required": ["total_pets", "adopted_pets", "available_pets", "adoption_rate"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.8,
+                    "category": "analytics",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -542,7 +858,39 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {},
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "pets": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "name": {"type": "string"},
+                                    "species": {"type": "string"},
+                                    "breed": {"type": "string"},
+                                    "age": {"type": "integer"},
+                                    "description": {"type": "string"},
+                                    "is_adopted": {"type": "boolean"},
+                                    "created_at": {"type": "string", "format": "date-time"},
+                                    "updated_at": {"type": "string", "format": "date-time"}
+                                },
+                                "required": ["id", "name", "species", "is_adopted"]
+                            }
+                        },
+                        "total_count": {"type": "integer"}
+                    },
+                    "required": ["pets", "total_count"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.7,
+                    "category": "search",
+                    "requiresConfirmation": False
                 }
             ),
             MCPTool(
@@ -552,10 +900,39 @@ class MCPService:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "pet_id": {"type": "integer", "description": "Pet ID to delete"},
-                        "pet_name": {"type": "string", "description": "Pet name to delete (alternative to pet_id)"}
+                        "pet_id": {
+                            "type": "integer",
+                            "description": "Pet ID to delete",
+                            "minimum": 1
+                        },
+                        "pet_name": {
+                            "type": "string",
+                            "description": "Pet name to delete (alternative to pet_id)",
+                            "minLength": 1
+                        }
                     },
-                    "required": []
+                    "required": [],
+                    "additionalProperties": False,
+                    "anyOf": [
+                        {"required": ["pet_id"]},
+                        {"required": ["pet_name"]}
+                    ]
+                },
+                outputSchema={
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string"},
+                        "deleted_pet_id": {"type": "integer"}
+                    },
+                    "required": ["message", "deleted_pet_id"]
+                },
+                annotations={
+                    "audience": ["user", "assistant"],
+                    "priority": 0.6,
+                    "category": "modification",
+                    "requiresConfirmation": True,
+                    "sensitiveOperation": True,
+                    "destructiveOperation": True
                 }
             )
         ]
@@ -721,24 +1098,39 @@ class MCPService:
     @staticmethod
     def format_tool_result(result: Any, is_error: bool = False) -> List[MCPContent]:
         """
-        Format tool execution result into MCP content format.
+        Format tool execution result into MCP content format with enhanced compliance.
         
         Args:
             result: Tool execution result
             is_error: Whether the result represents an error
             
         Returns:
-            List of MCPContent objects
+            List of MCPContent objects with annotations
         """
+        from datetime import datetime
+        
+        # Base annotations for all content
+        base_annotations = {
+            "audience": ["user", "assistant"],
+            "priority": 0.8,
+            "lastModified": datetime.utcnow().isoformat() + "Z"
+        }
+        
         if is_error:
             return [MCPContent(
                 type="text",
-                text=f"Error: {str(result)}"
+                text=f"Error: {str(result)}",
+                annotations={
+                    **base_annotations,
+                    "priority": 0.1,
+                    "category": "error"
+                }
             )]
         
-        # Format successful result as JSON text
+        # Format successful result as JSON text with annotations
         import json
         return [MCPContent(
             type="text", 
-            text=json.dumps(result, indent=2, ensure_ascii=False)
+            text=json.dumps(result, indent=2, ensure_ascii=False),
+            annotations=base_annotations
         )]

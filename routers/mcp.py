@@ -145,14 +145,23 @@ async def handle_mcp_initialize(params: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Invalid initialize parameters: {e}")
     
-    # Return server capabilities and info
+    # Return server capabilities and info with enhanced MCP compliance
     result = MCPInitializeResult(
         protocolVersion="2025-06-18",
         capabilities={
-            "tools": {},
-            "resources": {},
-            "prompts": {},
-            "logging": {}
+            "tools": {
+                "listChanged": True
+            },
+            "resources": {
+                "subscribe": True,
+                "listChanged": True
+            },
+            "prompts": {
+                "listChanged": True
+            },
+            "logging": {
+                "level": "info"
+            }
         },
         serverInfo={
             "name": "Pet Adoption API",
@@ -189,13 +198,20 @@ async def handle_mcp_tools_call(params: Dict[str, Any], db) -> Dict[str, Any]:
         # Execute the tool using MCPService
         result = await MCPService.execute_tool(db, call_params.name, call_params.arguments)
         
-        # Format the result as MCP content
+        # Format the result as MCP content with structured content support
         content = MCPService.format_tool_result(result, is_error=False)
         
-        return {
+        # Create response with both content and structured content
+        response = {
             "content": [item.model_dump() for item in content],
             "isError": False
         }
+        
+        # Add structured content for programmatic access
+        if isinstance(result, (dict, list)):
+            response["structuredContent"] = result
+        
+        return response
         
     except Exception as e:
         # Format error as MCP content
