@@ -209,15 +209,18 @@ class MCPToolCallParams(BaseModel):
 
 
 class MCPContent(BaseModel):
-    """MCP structured content item."""
+    """MCP structured content item with support for all content types."""
     type: str = Field(
         ...,
         description="Content type",
-        examples=["text", "image", "resource"]
+        examples=["text", "image", "audio", "resource_link", "resource"]
     )
     text: Optional[str] = Field(None, description="Text content")
     data: Optional[str] = Field(None, description="Base64 encoded data")
     mimeType: Optional[str] = Field(None, description="MIME type")
+    uri: Optional[str] = Field(None, description="Resource URI for resource_link and resource types")
+    name: Optional[str] = Field(None, description="Resource name for resource type")
+    description: Optional[str] = Field(None, description="Resource description for resource type")
     annotations: Optional[Dict[str, Any]] = Field(
         None,
         description="Content annotations for metadata"
@@ -372,6 +375,35 @@ class MCPLoggingSetLevelParams(BaseModel):
         if v.lower() not in valid_levels:
             raise ValueError(f'Invalid logging level: {v}. Valid levels: {valid_levels}')
         return v.lower()
+
+
+# Notification Schemas
+class MCPNotification(BaseModel):
+    """Base MCP notification schema."""
+    jsonrpc: str = Field(default="2.0", pattern="^2\\.0$", description="JSON-RPC version")
+    method: str = Field(..., description="Notification method name")
+    params: Optional[Dict[str, Any]] = Field(None, description="Notification parameters")
+
+
+class MCPToolsListChangedNotification(BaseModel):
+    """Notification for when the tools list has changed."""
+    jsonrpc: str = Field(default="2.0", pattern="^2\\.0$", description="JSON-RPC version")
+    method: str = Field(default="notifications/tools/list_changed", description="Notification method")
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Notification parameters")
+
+
+class MCPResourcesListChangedNotification(BaseModel):
+    """Notification for when the resources list has changed."""
+    jsonrpc: str = Field(default="2.0", pattern="^2\\.0$", description="JSON-RPC version")
+    method: str = Field(default="notifications/resources/list_changed", description="Notification method")
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Notification parameters")
+
+
+class MCPPromptsListChangedNotification(BaseModel):
+    """Notification for when the prompts list has changed."""
+    jsonrpc: str = Field(default="2.0", pattern="^2\\.0$", description="JSON-RPC version")
+    method: str = Field(default="notifications/prompts/list_changed", description="Notification method")
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Notification parameters")
 
 
 # Convenience type unions for method routing

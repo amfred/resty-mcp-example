@@ -95,6 +95,8 @@ async def mcp_server(request: Request, db: DatabaseDep):
                 result = await handle_mcp_resources_list(params)
             elif method == "resources/read":
                 result = await handle_mcp_resources_read(params)
+            elif method == "resources/subscribe":
+                result = await handle_mcp_resources_subscribe(params)
             elif method == "prompts/list":
                 result = await handle_mcp_prompts_list(params)
             elif method == "prompts/get":
@@ -195,8 +197,14 @@ async def handle_mcp_tools_call(params: Dict[str, Any], db) -> Dict[str, Any]:
         raise ValueError(f"Invalid tool call parameters: {e}")
     
     try:
+        # Enhanced validation of tool arguments
+        validated_arguments = MCPService.validate_tool_arguments(call_params.name, call_params.arguments)
+        
         # Execute the tool using MCPService
-        result = await MCPService.execute_tool(db, call_params.name, call_params.arguments)
+        result = await MCPService.execute_tool(db, call_params.name, validated_arguments)
+        
+        # Check if notifications should be sent for this operation
+        notification_flags = MCPService.should_send_notification(call_params.name)
         
         # Format the result as MCP content with structured content support
         content = MCPService.format_tool_result(result, is_error=False)
@@ -211,15 +219,25 @@ async def handle_mcp_tools_call(params: Dict[str, Any], db) -> Dict[str, Any]:
         if isinstance(result, (dict, list)):
             response["structuredContent"] = result
         
+        # Add notification information to response
+        if any(notification_flags.values()):
+            response["notifications"] = {
+                "tools_list_changed": notification_flags["tools"],
+                "resources_list_changed": notification_flags["resources"],
+                "prompts_list_changed": notification_flags["prompts"]
+            }
+        
         return response
         
     except Exception as e:
-        # Format error as MCP content
+        # Enhanced error handling
+        error_info = MCPService.format_error_response(e)
         error_content = MCPService.format_tool_result(str(e), is_error=True)
         
         return {
             "content": [item.model_dump() for item in error_content],
-            "isError": True
+            "isError": True,
+            "error": error_info
         }
 
 
@@ -300,6 +318,23 @@ async def handle_mcp_resources_read(params: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+async def handle_mcp_resources_subscribe(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle MCP resources/subscribe method."""
+    try:
+        # For now, we'll accept any subscription request
+        # In a real implementation, this would manage active subscriptions
+        uri = params.get("uri", "")
+        
+        return {
+            "message": f"Successfully subscribed to resource: {uri}",
+            "uri": uri,
+            "subscription_id": f"sub_{hash(uri) % 10000}",
+            "status": "active"
+        }
+    except Exception as e:
+        raise ValueError(f"Invalid resource subscription parameters: {e}")
+
+
 async def handle_mcp_prompts_list(params: Dict[str, Any]) -> Dict[str, Any]:
     """Handle MCP prompts/list method."""
     prompts = MCPService.get_available_prompts()
@@ -357,6 +392,43 @@ async def handle_mcp_logging_setLevel(params: Dict[str, Any]) -> Dict[str, Any]:
         "message": f"Logging level set to {current_log_level}",
         "level": current_log_level
     }
+
+
+# Notification endpoints for list change notifications
+@router.post("/notifications/tools/list_changed")
+async def tools_list_changed_notification():
+    """
+    Handle tools list changed notification.
+    
+    This endpoint can be called by clients to simulate or trigger
+    a tools list changed notification.
+    """
+    notification = MCPService.create_tools_list_changed_notification()
+    return notification
+
+
+@router.post("/notifications/resources/list_changed")
+async def resources_list_changed_notification():
+    """
+    Handle resources list changed notification.
+    
+    This endpoint can be called by clients to simulate or trigger
+    a resources list changed notification.
+    """
+    notification = MCPService.create_resources_list_changed_notification()
+    return notification
+
+
+@router.post("/notifications/prompts/list_changed")
+async def prompts_list_changed_notification():
+    """
+    Handle prompts list changed notification.
+    
+    This endpoint can be called by clients to simulate or trigger
+    a prompts list changed notification.
+    """
+    notification = MCPService.create_prompts_list_changed_notification()
+    return notification
 
 
 # Additional endpoint for MCP server info (non-JSON-RPC)

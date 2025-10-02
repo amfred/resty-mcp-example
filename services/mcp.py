@@ -1096,18 +1096,21 @@ class MCPService:
             raise ValueError(f"Unknown prompt: {name}")
 
     @staticmethod
-    def format_tool_result(result: Any, is_error: bool = False) -> List[MCPContent]:
+    def format_tool_result(result: Any, is_error: bool = False, content_type: str = "text") -> List[MCPContent]:
         """
         Format tool execution result into MCP content format with enhanced compliance.
         
         Args:
             result: Tool execution result
             is_error: Whether the result represents an error
+            content_type: Type of content to generate (text, image, audio, resource_link, resource)
             
         Returns:
             List of MCPContent objects with annotations
         """
         from datetime import datetime
+        import json
+        import base64
         
         # Base annotations for all content
         base_annotations = {
@@ -1127,10 +1130,262 @@ class MCPService:
                 }
             )]
         
-        # Format successful result as JSON text with annotations
-        import json
-        return [MCPContent(
-            type="text", 
-            text=json.dumps(result, indent=2, ensure_ascii=False),
-            annotations=base_annotations
-        )]
+        # Handle different content types
+        if content_type == "text":
+            return [MCPContent(
+                type="text", 
+                text=json.dumps(result, indent=2, ensure_ascii=False),
+                annotations=base_annotations
+            )]
+        
+        elif content_type == "image":
+            # For demonstration, create a simple image placeholder
+            if isinstance(result, dict) and "image_data" in result:
+                return [MCPContent(
+                    type="image",
+                    data=result["image_data"],
+                    mimeType=result.get("mime_type", "image/png"),
+                    annotations=base_annotations
+                )]
+            else:
+                # Fallback to text if no image data
+                return [MCPContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, ensure_ascii=False),
+                    annotations=base_annotations
+                )]
+        
+        elif content_type == "audio":
+            # For demonstration, create a simple audio placeholder
+            if isinstance(result, dict) and "audio_data" in result:
+                return [MCPContent(
+                    type="audio",
+                    data=result["audio_data"],
+                    mimeType=result.get("mime_type", "audio/mpeg"),
+                    annotations=base_annotations
+                )]
+            else:
+                # Fallback to text if no audio data
+                return [MCPContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, ensure_ascii=False),
+                    annotations=base_annotations
+                )]
+        
+        elif content_type == "resource_link":
+            # Create resource link content
+            if isinstance(result, dict) and "uri" in result:
+                return [MCPContent(
+                    type="resource_link",
+                    uri=result["uri"],
+                    name=result.get("name", "Resource"),
+                    description=result.get("description", ""),
+                    annotations=base_annotations
+                )]
+            else:
+                # Fallback to text if no URI
+                return [MCPContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, ensure_ascii=False),
+                    annotations=base_annotations
+                )]
+        
+        elif content_type == "resource":
+            # Create resource content
+            if isinstance(result, dict) and "uri" in result:
+                return [MCPContent(
+                    type="resource",
+                    uri=result["uri"],
+                    name=result.get("name", "Resource"),
+                    description=result.get("description", ""),
+                    mimeType=result.get("mime_type", "application/octet-stream"),
+                    annotations=base_annotations
+                )]
+            else:
+                # Fallback to text if no URI
+                return [MCPContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, ensure_ascii=False),
+                    annotations=base_annotations
+                )]
+        
+        else:
+            # Default to text content
+            return [MCPContent(
+                type="text", 
+                text=json.dumps(result, indent=2, ensure_ascii=False),
+                annotations=base_annotations
+            )]
+
+    @staticmethod
+    def create_tools_list_changed_notification() -> Dict[str, Any]:
+        """
+        Create a tools list changed notification.
+        
+        Returns:
+            Dictionary representing the notification
+        """
+        from schemas.mcp import MCPToolsListChangedNotification
+        return MCPToolsListChangedNotification().model_dump()
+
+    @staticmethod
+    def create_resources_list_changed_notification() -> Dict[str, Any]:
+        """
+        Create a resources list changed notification.
+        
+        Returns:
+            Dictionary representing the notification
+        """
+        from schemas.mcp import MCPResourcesListChangedNotification
+        return MCPResourcesListChangedNotification().model_dump()
+
+    @staticmethod
+    def create_prompts_list_changed_notification() -> Dict[str, Any]:
+        """
+        Create a prompts list changed notification.
+        
+        Returns:
+            Dictionary representing the notification
+        """
+        from schemas.mcp import MCPPromptsListChangedNotification
+        return MCPPromptsListChangedNotification().model_dump()
+
+    @staticmethod
+    def should_send_notification(operation: str) -> bool:
+        """
+        Determine if a notification should be sent for the given operation.
+        
+        Args:
+            operation: The operation that was performed
+            
+        Returns:
+            True if a notification should be sent
+        """
+        # Operations that change the tools list
+        tools_changing_operations = [
+            "create_pet", "update_pet_info", "delete_pet", "adopt_pet_by_name"
+        ]
+        
+        # Operations that change the resources list
+        resources_changing_operations = [
+            "create_pet", "update_pet_info", "delete_pet"
+        ]
+        
+        # Operations that change the prompts list
+        prompts_changing_operations = [
+            "create_pet", "update_pet_info", "delete_pet"
+        ]
+        
+        return {
+            "tools": operation in tools_changing_operations,
+            "resources": operation in resources_changing_operations,
+            "prompts": operation in prompts_changing_operations
+        }
+
+    @staticmethod
+    def format_error_response(error: Exception, error_code: int = -32603) -> Dict[str, Any]:
+        """
+        Format an error response with enhanced error handling.
+        
+        Args:
+            error: The exception that occurred
+            error_code: JSON-RPC error code
+            
+        Returns:
+            Formatted error response
+        """
+        from datetime import datetime
+        
+        # Enhanced error information
+        error_info = {
+            "code": error_code,
+            "message": str(error),
+            "data": {
+                "error_type": type(error).__name__,
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "traceback": None  # In production, you might want to include this
+            }
+        }
+        
+        # Add specific error codes for common issues
+        if "not found" in str(error).lower():
+            error_info["code"] = -32602  # Invalid params
+        elif "validation" in str(error).lower():
+            error_info["code"] = -32602  # Invalid params
+        elif "permission" in str(error).lower() or "unauthorized" in str(error).lower():
+            error_info["code"] = -32603  # Internal error (could be 401 in HTTP)
+        
+        return error_info
+
+    @staticmethod
+    def validate_tool_arguments(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Enhanced validation for tool arguments.
+        
+        Args:
+            tool_name: Name of the tool
+            arguments: Tool arguments to validate
+            
+        Returns:
+            Validated and sanitized arguments
+            
+        Raises:
+            ValueError: If validation fails
+        """
+        # Get the tool definition
+        tools = MCPService.get_available_tools()
+        tool_def = None
+        for tool in tools:
+            if tool.name == tool_name:
+                tool_def = tool
+                break
+        
+        if not tool_def:
+            raise ValueError(f"Tool '{tool_name}' not found")
+        
+        # Basic validation
+        if not isinstance(arguments, dict):
+            raise ValueError("Arguments must be a dictionary")
+        
+        # Validate required fields
+        if tool_def.inputSchema and "required" in tool_def.inputSchema:
+            for required_field in tool_def.inputSchema["required"]:
+                if required_field not in arguments:
+                    raise ValueError(f"Required field '{required_field}' is missing")
+        
+        # Validate field types and constraints
+        if tool_def.inputSchema and "properties" in tool_def.inputSchema:
+            for field_name, field_def in tool_def.inputSchema["properties"].items():
+                if field_name in arguments:
+                    value = arguments[field_name]
+                    
+                    # Type validation
+                    if field_def.get("type") == "string":
+                        if not isinstance(value, str):
+                            raise ValueError(f"Field '{field_name}' must be a string")
+                        
+                        # Length validation
+                        if "minLength" in field_def and len(value) < field_def["minLength"]:
+                            raise ValueError(f"Field '{field_name}' must be at least {field_def['minLength']} characters")
+                        if "maxLength" in field_def and len(value) > field_def["maxLength"]:
+                            raise ValueError(f"Field '{field_name}' must be at most {field_def['maxLength']} characters")
+                    
+                    elif field_def.get("type") == "integer":
+                        if not isinstance(value, int):
+                            raise ValueError(f"Field '{field_name}' must be an integer")
+                        
+                        # Range validation
+                        if "minimum" in field_def and value < field_def["minimum"]:
+                            raise ValueError(f"Field '{field_name}' must be at least {field_def['minimum']}")
+                        if "maximum" in field_def and value > field_def["maximum"]:
+                            raise ValueError(f"Field '{field_name}' must be at most {field_def['maximum']}")
+                    
+                    elif field_def.get("type") == "boolean":
+                        if not isinstance(value, bool):
+                            raise ValueError(f"Field '{field_name}' must be a boolean")
+                    
+                    # Enum validation
+                    if "enum" in field_def and value not in field_def["enum"]:
+                        raise ValueError(f"Field '{field_name}' must be one of: {field_def['enum']}")
+        
+        return arguments
