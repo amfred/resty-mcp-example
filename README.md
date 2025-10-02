@@ -572,6 +572,117 @@ This implementation demonstrates **excellent API design principles**:
 
 This project shows how to properly design dual interfaces for different integration scenarios!
 
+## Demo Scripts
+
+This project includes comprehensive demo scripts that show how to integrate with LLMs using the MCP protocol:
+
+### 🤖 `demo_mcp_flow.sh` - MCP Integration Flow Demo
+
+A complete demonstration of the MCP server interaction flow:
+
+```bash
+./demo_mcp_flow.sh
+```
+
+**What it demonstrates:**
+- ✅ MCP session initialization
+- ✅ Retrieving available tools from the server
+- ✅ Constructing LLM requests with tool schemas
+- ✅ Executing tool calls directly
+- ✅ Formatting and displaying results
+
+**Features:**
+- No API key required (works offline)
+- Shows complete curl commands for LLM integration
+- Demonstrates all 12 available MCP tools
+- Provides example tool calls for different queries
+
+### 🚀 `demo_llm_integration.sh` - Full LLM Integration Demo
+
+A complete end-to-end demo with actual LLM integration:
+
+```bash
+export OPENAI_API_KEY='your-api-key'
+./demo_llm_integration.sh
+```
+
+**What it demonstrates:**
+- ✅ Complete MCP-to-LLM integration flow
+- ✅ Sending tool schemas to OpenAI GPT-4
+- ✅ Receiving and parsing LLM tool calls
+- ✅ Executing LLM-requested tool calls
+- ✅ Formatting results for display
+
+**Requirements:**
+- OpenAI API key
+- `jq` command-line JSON processor
+- Running MCP server
+
+### 📋 Example Usage
+
+**Query: "List all pets that are available for adoption"**
+
+1. **MCP Server Response** (tools/list):
+   ```json
+   {
+     "name": "get_available_pets",
+     "description": "Get all pets that are currently available for adoption"
+   }
+   ```
+
+2. **LLM Request** (OpenAI Chat Completions):
+   ```bash
+   curl -X POST https://api.openai.com/v1/chat/completions \
+     -H 'Authorization: Bearer $OPENAI_API_KEY' \
+     -d '{
+       "model": "gpt-4o",
+       "messages": [{"role": "user", "content": "List available pets"}],
+       "tools": [...tool_schemas...],
+       "tool_choice": "auto"
+     }'
+   ```
+
+3. **LLM Response** (tool call):
+   ```json
+   {
+     "function": {
+       "name": "get_available_pets",
+       "arguments": "{}"
+     }
+   }
+   ```
+
+4. **MCP Tool Execution**:
+   ```bash
+   curl -X POST http://127.0.0.1:5001/api/v1/mcp/ \
+     -d '{
+       "jsonrpc": "2.0",
+       "method": "tools/call",
+       "params": {
+         "name": "get_available_pets",
+         "arguments": {}
+       }
+     }'
+   ```
+
+5. **Final Result**:
+   ```json
+   {
+     "content": [{
+       "type": "text",
+       "text": "[{\"name\": \"Fluffy\", \"species\": \"Cat\", \"is_adopted\": false}]"
+     }]
+   }
+   ```
+
+### 🎯 Key Benefits
+
+- **Complete Integration**: Shows the full MCP-to-LLM workflow
+- **Real Examples**: Uses actual API calls and responses
+- **Educational**: Perfect for learning MCP protocol implementation
+- **Production Ready**: Demonstrates proper error handling and validation
+- **Extensible**: Easy to modify for different LLM providers
+
 ## Development
 
 This is a simple FastAPI application perfect for:
